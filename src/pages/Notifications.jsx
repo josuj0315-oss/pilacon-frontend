@@ -6,7 +6,6 @@ import { ICONS } from '../constants/icons';
 const TABS = [
     { id: 'all', label: '전체' },
     { id: 'application', label: '지원' },
-    { id: 'chat', label: '채팅' },
     { id: 'job', label: '공고' },
     { id: 'system', label: '알림' },
 ];
@@ -43,9 +42,6 @@ export default function Notifications() {
 
             if (activeTab === 'application') {
                 return resourceType === 'application' || type.includes('APPLY') || type.includes('APPLICATION');
-            }
-            if (activeTab === 'chat') {
-                return resourceType === 'chat' || type.includes('CHAT');
             }
             if (activeTab === 'job') {
                 return resourceType === 'job' || type.includes('JOB') || type.includes('FAVORITE');
@@ -97,7 +93,6 @@ export default function Notifications() {
         const resType = (item.resourceType || '').toLowerCase();
 
         if (resType === 'application' || type.includes('APPLY')) return <ICONS.move size={20} />;
-        if (resType === 'chat' || type.includes('CHAT')) return <ICONS.message size={20} />;
         if (resType === 'job' || type.includes('JOB')) return <ICONS.briefcase size={20} />;
 
         return <ICONS.notification size={20} />;
@@ -183,8 +178,19 @@ export default function Notifications() {
           justify-content: space-between;
           padding: 12px 16px;
           height: 56px;
-          background: #fff;
-          border-bottom: 1px solid #f1f5f9;
+          background: rgba(255, 255, 255, 0.9);
+          backdrop-filter: blur(10px);
+          border-bottom: 1px solid rgba(0,0,0,0.03);
+          position: sticky;
+          top: 0;
+          z-index: 1000;
+        }
+
+        .unified-title {
+          font-size: 18px;
+          font-weight: 800;
+          color: #1e293b;
+          margin: 0;
         }
 
         .back-btn {

@@ -9,6 +9,46 @@ const LS = {
   applications: "pilacon:v1:applications",
   auth: "auth",
   instructorProfiles: "pilacon:v1:instructor_profiles",
+  notifications: "pilacon:v1:notifications",
+  notificationSettings: "pilacon:v1:notification_settings",
+  recentlyViewed: "pilacon:v1:recently_viewed",
+  blockedUsers: "pilacon:v1:blocked_users",
+};
+
+const DEFAULT_NOTIFICATION_SETTINGS = {
+  all: true,
+  posts: {
+    on: false,
+    regions: [],
+    workouts: [],
+    employmentTypes: [], 
+    newPost: true,
+    deadline: true,
+    closed: true,
+  },
+  applicant: {
+    on: true,
+    viewed: true,
+    chat: true,
+    deadline: true,
+    hire: true,
+  },
+  owner: {
+    on: true,
+    apply: true,
+    chat: true,
+  },
+  message: {
+    on: true,
+  },
+  extra: {
+    favoriteDeadline: true,
+    favoriteClosed: true,
+    applyStatus: true,
+    newChat: true,
+    jobUpdate: true,
+    interview: true,
+  }
 };
 
 function readJSON(key, fallback) {
@@ -68,6 +108,19 @@ export function PilaConProvider({ children }) {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [favorites, setFavorites] = useState([]);
+  const [notificationSettings, setNotificationSettings] = useState(() => {
+    const saved = readJSON(LS.notificationSettings, DEFAULT_NOTIFICATION_SETTINGS);
+    // ✅ Schema 업데이트 대응: 최상위 키들이 누락된 경우 DEFAULT에서 가져옴
+    return {
+      ...DEFAULT_NOTIFICATION_SETTINGS,
+      ...saved,
+      posts: { ...DEFAULT_NOTIFICATION_SETTINGS.posts, ...(saved.posts || {}) },
+      applicant: { ...DEFAULT_NOTIFICATION_SETTINGS.applicant, ...(saved.applicant || {}) },
+      owner: { ...DEFAULT_NOTIFICATION_SETTINGS.owner, ...(saved.owner || {}) },
+      message: { ...DEFAULT_NOTIFICATION_SETTINGS.message, ...(saved.message || {}) },
+      extra: { ...DEFAULT_NOTIFICATION_SETTINGS.extra, ...(saved.extra || {}) },
+    };
+  });
 
   // ✅ Auth 상태 관리 (토큰과 유저 정보가 모두 있어야 로그인 상태로 간주)
   const [user, setUser] = useState(() => {
@@ -75,6 +128,12 @@ export function PilaConProvider({ children }) {
     const token = localStorage.getItem('token');
     return (savedUser && token) ? savedUser : null;
   });
+
+  const [unreadMessageCount, setUnreadMessageCount] = useState(0);
+  const [lastChatMessage, setLastChatMessage] = useState(null);
+
+  const [recentlyViewedJobs, setRecentlyViewedJobs] = useState(() => readJSON(LS.recentlyViewed, []));
+  const [blockedUsers, setBlockedUsers] = useState(() => readJSON(LS.blockedUsers, []));
 
   /** ✅ applications: LocalStorage -> 없으면 [] */
   const [applications, setApplications] = useState(() => {
@@ -149,6 +208,10 @@ export function PilaConProvider({ children }) {
   useEffect(() => {
     writeJSON(LS.applications, applications);
   }, [applications]);
+
+  useEffect(() => {
+    writeJSON(LS.notificationSettings, notificationSettings);
+  }, [notificationSettings]);
 
   // ✅ Auth 상태 변화 저장
   useEffect(() => {
@@ -674,6 +737,13 @@ export function PilaConProvider({ children }) {
       const res = await axios.get(`${API_BASE_URL}/notifications?page=${page}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      // 채팅 알림은 알림 페이지에서 제외
+      if (res.data && res.data.items) {
+        res.data.items = res.data.items.filter(n => {
+          const type = (n.resourceType || '').toLowerCase();
+          return type !== 'chat' && type !== 'message';
+        });
+      }
       return res.data;
     } catch (e) {
       console.error("Failed to fetch notifications:", e);
@@ -741,9 +811,19 @@ export function PilaConProvider({ children }) {
 
       eventSource.onmessage = (event) => {
         const payload = JSON.parse(event.data);
-        const newNotification = payload.data;
-        setNotifications(prev => [newNotification, ...prev]);
-        setUnreadCount(prev => prev + 1);
+        const newNotif = payload.data;
+        const resType = (newNotif.resourceType || '').toLowerCase();
+
+        if (resType === 'chat' || resType === 'message') {
+          // 채팅 알림은 메인 알림 리스트에 넣지 않고 별도 카운트 및 배너 연동
+          setUnreadMessageCount(prev => prev + 1);
+          if (notificationSettings.message.on) {
+            setLastChatMessage(newNotif);
+          }
+        } else {
+          setNotifications(prev => [newNotif, ...prev]);
+          setUnreadCount(prev => prev + 1);
+        }
       };
 
       eventSource.onerror = (e) => {
@@ -776,6 +856,32 @@ export function PilaConProvider({ children }) {
     );
     setApplications([]);
     setUser(null);
+  };
+
+  const addRecentlyViewedJob = (jobId) => {
+    setRecentlyViewedJobs(prev => {
+      const filtered = prev.filter(id => id !== jobId);
+      const updated = [jobId, ...filtered].slice(0, 20); // Keep last 20
+      writeJSON(LS.recentlyViewed, updated);
+      return updated;
+    });
+  };
+
+  const blockUser = (userId) => {
+    setBlockedUsers(prev => {
+      if (prev.includes(userId)) return prev;
+      const updated = [...prev, userId];
+      writeJSON(LS.blockedUsers, updated);
+      return updated;
+    });
+  };
+
+  const unblockUser = (userId) => {
+    setBlockedUsers(prev => {
+      const updated = prev.filter(id => id !== userId);
+      writeJSON(LS.blockedUsers, updated);
+      return updated;
+    });
   };
 
   const value = useMemo(
@@ -824,11 +930,28 @@ export function PilaConProvider({ children }) {
       loading,
       notifications,
       unreadCount,
+      setUnreadCount,
+      unreadMessageCount,
+      setUnreadMessageCount,
+      lastChatMessage,
+      setLastChatMessage,
+      notificationSettings,
+      updateNotificationSettings: (updater) => {
+        setNotificationSettings(prev => {
+          const next = typeof updater === 'function' ? updater(prev) : updater;
+          return { ...prev, ...next };
+        });
+      },
       getNotifications,
       markNotificationAsRead,
       markAllNotificationsAsRead,
+      recentlyViewedJobs,
+      addRecentlyViewedJob,
+      blockedUsers,
+      blockUser,
+      unblockUser,
     }),
-    [jobs, myJobs, appliedList, favorites, loading, user, profiles, notifications, unreadCount]
+    [jobs, myJobs, appliedList, favorites, loading, user, profiles, notifications, unreadCount, unreadMessageCount, lastChatMessage, notificationSettings, recentlyViewedJobs, blockedUsers]
   );
 
   return <PilaConContext.Provider value={value}>{children}</PilaConContext.Provider>;

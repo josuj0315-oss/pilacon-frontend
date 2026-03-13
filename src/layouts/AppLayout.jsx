@@ -2,6 +2,7 @@ import { useNavigate, Outlet, useLocation } from "react-router-dom";
 import BottomNav from "../components/BottomNav";
 import { usePilaCon } from "../store/pilaconStore";
 import { ICONS, ICON_CONFIG } from "../constants/icons";
+import MessageNotificationBanner from "../components/MessageNotificationBanner";
 
 export default function AppLayout() {
   const location = useLocation();
@@ -20,6 +21,7 @@ export default function AppLayout() {
 
   return (
     <div className="app-layout">
+      <MessageNotificationBanner />
       {user && (
         <div id="userBadge" className="user-badge">
           <div className="user-info">

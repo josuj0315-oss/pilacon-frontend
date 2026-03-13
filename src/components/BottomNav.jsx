@@ -1,8 +1,10 @@
 import { NavLink } from "react-router-dom";
 import { ICONS, ICON_CONFIG } from "../constants/icons";
+import { usePilaCon } from "../store/pilaconStore";
 import "./BottomNav.css";
 
 export default function BottomNav() {
+  const { unreadMessageCount } = usePilaCon();
   const navItems = [
     { to: "/", label: "홈", iconKey: "home" },
     { to: "/activity", label: "내 활동", iconKey: "activity" },
@@ -31,6 +33,9 @@ export default function BottomNav() {
                   color={isActive ? ICON_CONFIG.color.active : ICON_CONFIG.color.inactive}
                   className="nav-icon"
                 />
+                {item.iconKey === 'chat' && unreadMessageCount > 0 && (
+                  <span className="nav-badge">{unreadMessageCount > 99 ? '99+' : unreadMessageCount}</span>
+                )}
                 <span className="nav-label">{item.label}</span>
               </>
             )}

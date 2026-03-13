@@ -14,6 +14,11 @@ import ApplicantList from "./pages/ApplicantList";
 import InstructorProfileManager from "./pages/InstructorProfileManager";
 import JobEdit from "./pages/JobEdit";
 import Notifications from "./pages/Notifications";
+import NotificationSettings from "./pages/NotificationSettings";
+import NotificationCustomSettings from "./pages/NotificationCustomSettings";
+import AppSettings from "./pages/AppSettings";
+import RecentlyViewedJobs from "./pages/RecentlyViewedJobs";
+import BlockedUsers from "./pages/BlockedUsers";
 
 import Favorites from "./pages/Favorites";
 import UserInfoEdit from "./pages/UserInfoEdit";
@@ -55,6 +60,11 @@ export default function App() {
         <Route path="/activity/applicants/:jobId" element={<ApplicantList />} />
         <Route path="/chat/:id" element={<ChatRoom />} />
         <Route path="/notifications" element={<Notifications />} />
+        <Route path="/mypage/notification-settings" element={<NotificationSettings />} />
+        <Route path="/mypage/notification-settings/custom" element={<NotificationCustomSettings />} />
+        <Route path="/mypage/app-settings" element={<AppSettings />} />
+        <Route path="/mypage/recent-jobs" element={<RecentlyViewedJobs />} />
+        <Route path="/mypage/blocked-users" element={<BlockedUsers />} />
 
         {/* 로그인 상태에서 로그인 페이지 접근 시 홈으로 리다이렉트 */}
         <Route path="/login" element={<Navigate to="/" />} />
