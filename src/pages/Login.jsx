@@ -28,8 +28,12 @@ export default function Login() {
             console.log("2. Extracted Token:", token.substring(0, 15) + "...");
             
             localStorage.setItem("accessToken", token);
-            const saved = localStorage.getItem("accessToken");
-            console.log("3. Token saved in localStorage verified:", saved === token ? "SUCCESS" : "FAILED");
+            console.log("\n--- [Login.jsx] Keys Verification ---");
+            console.log("- accessToken:", localStorage.getItem('accessToken') ? "EXISTS" : "NULL");
+            console.log("- token:", localStorage.getItem('token') ? "EXISTS" : "NULL");
+            console.log("- authToken:", localStorage.getItem('authToken') ? "EXISTS" : "NULL");
+            console.log("- auth:", localStorage.getItem('auth') ? "EXISTS" : "NULL");
+            console.log("- LS.auth (key='auth'):", localStorage.getItem('auth') ? "EXISTS" : "NULL");
             
             loginWithToken(token).then((ok) => {
                 console.log("4. fetchMyData finished. Login success?", ok);

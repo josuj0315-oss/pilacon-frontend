@@ -1,8 +1,13 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import axios from "axios";
 axios.interceptors.request.use((config) => {
+  const hasManualAuth = config.headers?.Authorization || (typeof config.headers?.get === 'function' && config.headers.get('Authorization'));
   const token = localStorage.getItem("accessToken");
-  if (token) {
+  const rawTokenLog = token ? `${token.substring(0, 10)}...` : "NONE";
+
+  if (hasManualAuth) {
+    console.log(`[Axios Debug] url=${config.url}, using MANUALLY provided Auth Header.`);
+  } else if (token) {
     const authHeader = `Bearer ${token}`;
     if (!config.headers) {
       config.headers = {};
@@ -12,9 +17,9 @@ axios.interceptors.request.use((config) => {
     } else {
       config.headers.Authorization = authHeader;
     }
-    console.log(`[Axios] Request to ${config.url} with Auth Header: ${authHeader.substring(0, 20)}...`);
+    console.log(`[Axios Debug] url=${config.url}, key=accessToken, rawToken=${rawTokenLog}, finalAuthHeader=${authHeader.substring(0, 20)}...`);
   } else {
-    console.log(`[Axios] Request to ${config.url} with Auth Header: NONE`);
+    console.log(`[Axios Debug] url=${config.url}, key=accessToken, rawToken=NONE, finalAuthHeader=NONE`);
   }
   return config;
 });
@@ -165,14 +170,15 @@ export function PilaConProvider({ children }) {
   let isFetchingAuth = false;
 
   // 1. 초기 데이터 로드 (백엔드 API 호출)
-  const fetchMyData = async (token) => {
+  const fetchMyData = async (tokenParam) => {
     if (isFetchingAuth) {
       console.log("[Store] fetchMyData is already in flight. Skipping duplicate call.");
       return;
     }
     isFetchingAuth = true;
     try {
-      const authRes = await axios.get(`${API_BASE_URL}/auth/me`);
+      const headers = tokenParam ? { Authorization: `Bearer ${tokenParam}` } : undefined;
+      const authRes = await axios.get(`${API_BASE_URL}/auth/me`, { headers });
       setUser(authRes.data);
       writeJSON(LS.auth, authRes.data);
     } catch (e) {
@@ -256,12 +262,10 @@ export function PilaConProvider({ children }) {
     writeJSON(LS.notificationSettings, notificationSettings);
   }, [notificationSettings]);
 
-  // ✅ Auth 상태 변화 저장
+  // ✅ Auth 상태 변화 저장 (로그인 시 데이터 백업용. 초기화 시 빈 유저라고 토큰을 지우면 안됨!)
   useEffect(() => {
-    if (user) writeJSON(LS.auth, user);
-    else {
-      localStorage.removeItem(LS.auth);
-      localStorage.removeItem("accessToken");
+    if (user) {
+      writeJSON(LS.auth, user);
     }
   }, [user]);
 
