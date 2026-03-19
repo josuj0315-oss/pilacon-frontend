@@ -3,7 +3,14 @@ import axios from "axios";
 axios.interceptors.request.use((config) => {
   const token = localStorage.getItem("accessToken");
   if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+    if (!config.headers) {
+      config.headers = {};
+    }
+    if (typeof config.headers.set === 'function') {
+      config.headers.set('Authorization', `Bearer ${token}`);
+    } else {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
   }
   return config;
 });
@@ -154,23 +161,30 @@ export function PilaConProvider({ children }) {
     try {
       const authRes = await axios.get(`${API_BASE_URL}/auth/me`);
       setUser(authRes.data);
+    } catch (e) {
+      console.error('Failed to fetch user data (/auth/me):', e);
+      localStorage.removeItem("accessToken");
+      setUser(null);
+      throw e;
+    }
 
+    try {
       // fetch applications
       const appRes = await axios.get(`${API_BASE_URL}/applications/my`);
       setApplications(appRes.data);
+    } catch (e) { console.warn('Failed to fetch applications:', e); }
 
+    try {
       // fetch profiles
       const profRes = await axios.get(`${API_BASE_URL}/instructor-profiles`);
       setProfiles(profRes.data);
+    } catch (e) { console.warn('Failed to fetch instructor profiles:', e); }
 
+    try {
       // fetch favorites
       const favRes = await axios.get(`${API_BASE_URL}/favorites/me`);
       setFavorites(favRes.data);
-    } catch (e) {
-      console.error('Failed to fetch user data:', e);
-      localStorage.removeItem("accessToken");
-      setUser(null);
-    }
+    } catch (e) { console.warn('Failed to fetch favorites:', e); }
   };
 
   // 1. 초기 데이터 로드 (백엔드 API 호출)
