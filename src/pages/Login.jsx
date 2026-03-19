@@ -21,18 +21,25 @@ export default function Login() {
     useEffect(() => {
         const token = searchParams.get('accessToken');
         if (token) {
-            console.log("Token received from social login:", token);
-            localStorage.setItem("accessToken", token);
-            console.log("Token saved to localStorage successfully.");
+            console.log("\n--- [Login.jsx] Social Login Flow ---");
+            console.log("1. Current URL:", window.location.href);
+            console.log("2. Extracted Token:", token.substring(0, 15) + "...");
             
-            // 저장 직후 유저 정보를 한 번 불러온 뒤 홈으로 이동해야 App.jsx에서 튕겨내지 않음
+            localStorage.setItem("accessToken", token);
+            const saved = localStorage.getItem("accessToken");
+            console.log("3. Token saved in localStorage verified:", saved === token ? "SUCCESS" : "FAILED");
+            
             loginWithToken(token).then((ok) => {
+                console.log("4. fetchMyData finished. Login success?", ok);
                 if (ok) {
-                    window.location.href = "/";
+                    console.log("5. State is populated, navigating to Home.");
+                    navigate("/", { replace: true });
+                } else {
+                    console.error("4-b. Login failed during user data fetch!");
                 }
             });
         }
-    }, [searchParams, loginWithToken]);
+    }, [searchParams, loginWithToken, navigate]);
 
     const handleSocialLogin = (provider) => {
         const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';

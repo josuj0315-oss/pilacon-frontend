@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useMemo, useState } from "
 import axios from "axios";
 axios.interceptors.request.use((config) => {
   const token = localStorage.getItem("accessToken");
+  console.log(`[Axios] Request to ${config.url} with Auth Header: ${token ? token.substring(0, 15) + "..." : "NONE"}`);
   if (token) {
     if (!config.headers) {
       config.headers = {};
@@ -144,6 +145,8 @@ export function PilaConProvider({ children }) {
     return (savedUser && token) ? savedUser : null;
   });
 
+  const [isAuthLoading, setIsAuthLoading] = useState(() => !!localStorage.getItem("accessToken"));
+
   const [unreadMessageCount, setUnreadMessageCount] = useState(0);
   const [lastChatMessage, setLastChatMessage] = useState(null);
 
@@ -161,10 +164,12 @@ export function PilaConProvider({ children }) {
     try {
       const authRes = await axios.get(`${API_BASE_URL}/auth/me`);
       setUser(authRes.data);
+      writeJSON(LS.auth, authRes.data);
     } catch (e) {
       console.error('Failed to fetch user data (/auth/me):', e);
       localStorage.removeItem("accessToken");
       setUser(null);
+      writeJSON(LS.auth, null);
       throw e;
     }
 
@@ -193,7 +198,13 @@ export function PilaConProvider({ children }) {
       // 1. 토큰이 있으면 유저 데이터 가져오기
       const token = localStorage.getItem("accessToken");
       if (token) {
-        await fetchMyData(token);
+        try {
+          await fetchMyData(token);
+        } finally {
+          setIsAuthLoading(false);
+        }
+      } else {
+        setIsAuthLoading(false);
       }
 
       // 2. 공고 목록 가져오기 (비로그인 공유)
@@ -238,12 +249,15 @@ export function PilaConProvider({ children }) {
 
   const loginWithToken = async (token) => {
     try {
+      setIsAuthLoading(true);
       localStorage.setItem("accessToken", token);
       await fetchMyData(token);
       return true;
     } catch (e) {
       console.error('Login failed', e);
       return false;
+    } finally {
+      setIsAuthLoading(false);
     }
   };
 
@@ -866,6 +880,7 @@ export function PilaConProvider({ children }) {
       logout,
       resetLocal,
       loading,
+      isAuthLoading,
       notifications,
       unreadCount,
       setUnreadCount,
@@ -889,7 +904,7 @@ export function PilaConProvider({ children }) {
       blockUser,
       unblockUser,
     }),
-    [jobs, myJobs, appliedList, favorites, loading, user, profiles, notifications, unreadCount, unreadMessageCount, lastChatMessage, notificationSettings, recentlyViewedJobs, blockedUsers]
+    [jobs, myJobs, appliedList, favorites, loading, isAuthLoading, user, profiles, notifications, unreadCount, unreadMessageCount, lastChatMessage, notificationSettings, recentlyViewedJobs, blockedUsers]
   );
 
   return <PilaConContext.Provider value={value}>{children}</PilaConContext.Provider>;

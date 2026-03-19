@@ -28,7 +28,7 @@ import Onboarding from "./components/Onboarding";
 import { useState } from "react";
 
 export default function App() {
-  const { user } = usePilaCon();
+  const { user, isAuthLoading } = usePilaCon();
   const [showOnboarding, setShowOnboarding] = useState(() => {
     return !localStorage.getItem("onboarding_seen");
   });
@@ -40,6 +40,14 @@ export default function App() {
 
   if (showOnboarding) {
     return <Onboarding onComplete={handleOnboardingComplete} />;
+  }
+
+  if (isAuthLoading) {
+    return (
+      <div style={{ display: 'flex', height: '100vh', justifyContent: 'center', alignItems: 'center', flexDirection: 'column', gap: '10px' }}>
+        <p style={{ color: '#888', fontSize: '14px' }}>인증 정보를 확인하는 중입니다...</p>
+      </div>
+    );
   }
 
   if (!user) {
