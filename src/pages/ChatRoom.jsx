@@ -533,11 +533,6 @@ export default function ChatRoom() {
         .job-bar-status {
           margin-top: 2px;
         }
-        .status-badge {
-          font-size: 11px;
-          font-weight: 600;
-          color: #64748b;
-        }
         .status-badge.accepted {
           color: #5b5ff5;
           font-weight: 800;

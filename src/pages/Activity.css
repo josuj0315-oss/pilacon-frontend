@@ -108,6 +108,9 @@
   padding: 6px 12px;
   border-radius: 10px;
   letter-spacing: -0.01em;
+  white-space: nowrap;
+  width: fit-content;
+  flex-shrink: 0;
 }
 
 .status-badge.pending {

@@ -24,9 +24,23 @@ import Favorites from "./pages/Favorites";
 import UserInfoEdit from "./pages/UserInfoEdit";
 import SignupWizard from "./pages/SignupWizard";
 import CenterManagement from "./pages/CenterManagement";
+import Onboarding from "./components/Onboarding";
+import { useState } from "react";
 
 export default function App() {
   const { user } = usePilaCon();
+  const [showOnboarding, setShowOnboarding] = useState(() => {
+    return !localStorage.getItem("onboarding_seen");
+  });
+
+  const handleOnboardingComplete = () => {
+    localStorage.setItem("onboarding_seen", "true");
+    setShowOnboarding(false);
+  };
+
+  if (showOnboarding) {
+    return <Onboarding onComplete={handleOnboardingComplete} />;
+  }
 
   if (!user) {
     return (

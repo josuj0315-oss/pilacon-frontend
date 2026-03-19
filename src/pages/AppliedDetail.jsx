@@ -245,6 +245,9 @@ export default function AppliedDetail({ application, onBack, onChat, onGoToJob }
           background: #f1f5f9;
           padding: 6px 16px;
           border-radius: 100px;
+          white-space: nowrap;
+          width: fit-content;
+          flex-shrink: 0;
         }
 
         .status-guide-text.canceled {
@@ -332,6 +335,9 @@ export default function AppliedDetail({ application, onBack, onChat, onGoToJob }
           background: rgba(91, 95, 245, 0.08);
           padding: 4px 10px;
           border-radius: 8px;
+          white-space: nowrap;
+          width: fit-content;
+          flex-shrink: 0;
         }
 
         /* Inline Timeline */
