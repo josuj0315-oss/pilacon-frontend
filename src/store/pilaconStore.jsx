@@ -5,8 +5,10 @@ axios.interceptors.request.use((config) => {
   const token = localStorage.getItem("accessToken");
   const rawTokenLog = token ? `${token.substring(0, 10)}...` : "NONE";
 
+  const isDev = import.meta.env.DEV;
+
   if (hasManualAuth) {
-    console.log(`[Axios Debug] url=${config.url}, using MANUALLY provided Auth Header.`);
+    if (isDev) console.log(`[Axios Debug] url=${config.url}, using MANUALLY provided Auth Header.`);
   } else if (token) {
     const authHeader = `Bearer ${token}`;
     if (!config.headers) {
@@ -17,9 +19,9 @@ axios.interceptors.request.use((config) => {
     } else {
       config.headers.Authorization = authHeader;
     }
-    console.log(`[Axios Debug] url=${config.url}, key=accessToken, rawToken=${rawTokenLog}, finalAuthHeader=${authHeader.substring(0, 20)}...`);
+    if (isDev) console.log(`[Axios Debug] url=${config.url}, key=accessToken, rawToken=${rawTokenLog}, finalAuthHeader=${authHeader.substring(0, 20)}...`);
   } else {
-    console.log(`[Axios Debug] url=${config.url}, key=accessToken, rawToken=NONE, finalAuthHeader=NONE`);
+    if (isDev) console.log(`[Axios Debug] url=${config.url}, key=accessToken, rawToken=NONE, finalAuthHeader=NONE`);
   }
   return config;
 });
@@ -172,7 +174,7 @@ export function PilaConProvider({ children }) {
   // 1. 초기 데이터 로드 (백엔드 API 호출)
   const fetchMyData = async (tokenParam) => {
     if (isFetchingAuth) {
-      console.log("[Store] fetchMyData is already in flight. Skipping duplicate call.");
+      if (import.meta.env.DEV) console.log("[Store] fetchMyData is already in flight. Skipping duplicate call.");
       return;
     }
     isFetchingAuth = true;
@@ -216,7 +218,7 @@ export function PilaConProvider({ children }) {
     const initData = async () => {
       // ✅ 1. 소셜 로그인 설정 중일 때는 전역 초기화를 방지합니다 (Login.jsx에 양도)
       if (window.location.search.includes("accessToken=")) {
-        console.log("[Store] Omitted initial auth bootstrap to defer to social callback.");
+        if (import.meta.env.DEV) console.log("[Store] Omitted initial auth bootstrap to defer to social callback.");
         setIsAuthLoading(false);
       } else {
         const token = localStorage.getItem("accessToken");

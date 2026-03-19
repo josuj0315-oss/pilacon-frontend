@@ -102,9 +102,11 @@ export default function Write() {
     const loadCenters = async () => {
       const token = localStorage.getItem('accessToken');
       
-      console.log(`[CreateJob Debug] accessToken exists=${!!token}`);
-      console.log(`[CreateJob Debug] Authorization=Bearer ${token ? token.substring(0, 20) + '...' : 'NONE'}`);
-      console.log(`[CreateJob Debug] fetching center profile...`);
+      if (import.meta.env.DEV) {
+        console.log(`[CreateJob Debug] accessToken exists=${!!token}`);
+        console.log(`[CreateJob Debug] Authorization=Bearer ${token ? token.substring(0, 20) + '...' : 'NONE'}`);
+        console.log(`[CreateJob Debug] fetching center profile...`);
+      }
       
       if (!token || token === 'null' || token === 'undefined') {
         console.warn("No token found, skipping center fetch");

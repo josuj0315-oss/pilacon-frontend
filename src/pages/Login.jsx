@@ -23,25 +23,31 @@ export default function Login() {
         const token = searchParams.get('accessToken');
         if (token && !hasProcessedToken.current) {
             hasProcessedToken.current = true;
-            console.log("\n--- [Login.jsx] Social Login Flow ---");
-            console.log("1. Current URL:", window.location.href);
-            console.log("2. Extracted Token:", token.substring(0, 15) + "...");
+            
+            const isDev = import.meta.env.DEV;
+            if (isDev) {
+                console.log("\n--- [Login.jsx] Social Login Flow ---");
+                console.log("1. Current URL:", window.location.href);
+                console.log("2. Extracted Token:", token.substring(0, 15) + "...");
+            }
             
             localStorage.setItem("accessToken", token);
-            console.log("\n--- [Login.jsx] Keys Verification ---");
-            console.log("- accessToken:", localStorage.getItem('accessToken') ? "EXISTS" : "NULL");
-            console.log("- token:", localStorage.getItem('token') ? "EXISTS" : "NULL");
-            console.log("- authToken:", localStorage.getItem('authToken') ? "EXISTS" : "NULL");
-            console.log("- auth:", localStorage.getItem('auth') ? "EXISTS" : "NULL");
-            console.log("- LS.auth (key='auth'):", localStorage.getItem('auth') ? "EXISTS" : "NULL");
+            if (isDev) {
+                console.log("\n--- [Login.jsx] Keys Verification ---");
+                console.log("- accessToken:", localStorage.getItem('accessToken') ? "EXISTS" : "NULL");
+                console.log("- token:", localStorage.getItem('token') ? "EXISTS" : "NULL");
+                console.log("- authToken:", localStorage.getItem('authToken') ? "EXISTS" : "NULL");
+                console.log("- auth:", localStorage.getItem('auth') ? "EXISTS" : "NULL");
+                console.log("- LS.auth (key='auth'):", localStorage.getItem('auth') ? "EXISTS" : "NULL");
+            }
             
             loginWithToken(token).then((ok) => {
-                console.log("4. fetchMyData finished. Login success?", ok);
+                if (isDev) console.log("4. fetchMyData finished. Login success?", ok);
                 if (ok) {
-                    console.log("5. State is populated, navigating to Home.");
+                    if (isDev) console.log("5. State is populated, navigating to Home.");
                     navigate("/", { replace: true });
                 } else {
-                    console.error("4-b. Login failed during user data fetch!");
+                    if (isDev) console.error("4-b. Login failed during user data fetch!");
                 }
             });
         }
