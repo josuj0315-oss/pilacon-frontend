@@ -133,7 +133,7 @@ export function PilaConProvider({ children }) {
   // ✅ Auth 상태 관리 (토큰과 유저 정보가 모두 있어야 로그인 상태로 간주)
   const [user, setUser] = useState(() => {
     const savedUser = readJSON(LS.auth, null);
-    
+    const token = localStorage.getItem("accessToken");
     return (savedUser && token) ? savedUser : null;
   });
 
@@ -177,7 +177,7 @@ export function PilaConProvider({ children }) {
   useEffect(() => {
     const initData = async () => {
       // 1. 토큰이 있으면 유저 데이터 가져오기
-      
+      const token = localStorage.getItem("accessToken");
       if (token) {
         await fetchMyData(token);
       }
@@ -708,7 +708,7 @@ export function PilaConProvider({ children }) {
   };
 
   const fetchUnreadCount = async () => {
-    
+    const token = localStorage.getItem("accessToken");
     if (!user || !token) return;
     try {
       const res = await axios.get(`${API_BASE_URL}/notifications/unread-count`);
@@ -720,14 +720,14 @@ export function PilaConProvider({ children }) {
 
   // SSE 연결
   useEffect(() => {
-    
+    const token = localStorage.getItem("accessToken");
     if (!user || !token) return;
 
     fetchUnreadCount();
 
     let eventSource;
     const connectSSE = () => {
-      
+      const token = localStorage.getItem("accessToken");
       if (!token) return;
 
       // EventSource는 헤더 전송을 못하므로 쿼리파라미터로 처리
