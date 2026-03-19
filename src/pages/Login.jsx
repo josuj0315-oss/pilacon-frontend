@@ -24,9 +24,15 @@ export default function Login() {
             console.log("Token received from social login:", token);
             localStorage.setItem("accessToken", token);
             console.log("Token saved to localStorage successfully.");
-            window.location.href = "/";
+            
+            // 저장 직후 유저 정보를 한 번 불러온 뒤 홈으로 이동해야 App.jsx에서 튕겨내지 않음
+            loginWithToken(token).then((ok) => {
+                if (ok) {
+                    window.location.href = "/";
+                }
+            });
         }
-    }, [searchParams]);
+    }, [searchParams, loginWithToken]);
 
     const handleSocialLogin = (provider) => {
         const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
