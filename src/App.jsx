@@ -63,7 +63,6 @@ export default function App() {
   return (
     <div id="appScreen">
       <Routes>
-        {/* ✅ 하단 탭이 붙는 영역 */}
         <Route element={<AppLayout />}>
           <Route path="/" element={<Home />} />
           <Route path="/activity" element={<Activity />} />
