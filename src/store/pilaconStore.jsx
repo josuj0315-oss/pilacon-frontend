@@ -1,5 +1,13 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import axios from "axios";
+axios.interceptors.request.use((config) => {
+  const token = localStorage.getItem("accessToken");
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
 import { jobs as seedJobs } from "../data/jobs";
 
 const PilaConContext = createContext(null);
@@ -125,7 +133,7 @@ export function PilaConProvider({ children }) {
   // ✅ Auth 상태 관리 (토큰과 유저 정보가 모두 있어야 로그인 상태로 간주)
   const [user, setUser] = useState(() => {
     const savedUser = readJSON(LS.auth, null);
-    const token = localStorage.getItem('token');
+    
     return (savedUser && token) ? savedUser : null;
   });
 
@@ -144,31 +152,23 @@ export function PilaConProvider({ children }) {
   // 1. 초기 데이터 로드 (백엔드 API 호출)
   const fetchMyData = async (token) => {
     try {
-      const authRes = await axios.get(`${API_BASE_URL}/auth/me`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const authRes = await axios.get(`${API_BASE_URL}/auth/me`);
       setUser(authRes.data);
 
       // fetch applications
-      const appRes = await axios.get(`${API_BASE_URL}/applications/my`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const appRes = await axios.get(`${API_BASE_URL}/applications/my`);
       setApplications(appRes.data);
 
       // fetch profiles
-      const profRes = await axios.get(`${API_BASE_URL}/instructor-profiles`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const profRes = await axios.get(`${API_BASE_URL}/instructor-profiles`);
       setProfiles(profRes.data);
 
       // fetch favorites
-      const favRes = await axios.get(`${API_BASE_URL}/favorites/me`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const favRes = await axios.get(`${API_BASE_URL}/favorites/me`);
       setFavorites(favRes.data);
     } catch (e) {
       console.error('Failed to fetch user data:', e);
-      localStorage.removeItem('token');
+      localStorage.removeItem("accessToken");
       setUser(null);
     }
   };
@@ -177,7 +177,7 @@ export function PilaConProvider({ children }) {
   useEffect(() => {
     const initData = async () => {
       // 1. 토큰이 있으면 유저 데이터 가져오기
-      const token = localStorage.getItem('token');
+      
       if (token) {
         await fetchMyData(token);
       }
@@ -218,13 +218,13 @@ export function PilaConProvider({ children }) {
     if (user) writeJSON(LS.auth, user);
     else {
       localStorage.removeItem(LS.auth);
-      localStorage.removeItem('token');
+      localStorage.removeItem("accessToken");
     }
   }, [user]);
 
   const loginWithToken = async (token) => {
     try {
-      localStorage.setItem('token', token);
+      localStorage.setItem("accessToken", token);
       await fetchMyData(token);
       return true;
     } catch (e) {
@@ -246,7 +246,7 @@ export function PilaConProvider({ children }) {
     try {
       const res = await axios.post(`${API_BASE_URL}/auth/signup`, details);
       const { user: userData, token } = res.data;
-      localStorage.setItem('token', token);
+      localStorage.setItem("accessToken", token);
       setUser(userData);
       return { ok: true };
     } catch (e) {
@@ -259,7 +259,7 @@ export function PilaConProvider({ children }) {
     try {
       const res = await axios.post(`${API_BASE_URL}/auth/login`, details);
       const { token } = res.data;
-      localStorage.setItem('token', token);
+      localStorage.setItem("accessToken", token);
       await fetchMyData(token);
       return { ok: true };
     } catch (e) {
@@ -271,15 +271,10 @@ export function PilaConProvider({ children }) {
   const toggleFavorite = async (jobId) => {
     if (!user) return { ok: false, error: 'Not logged in' };
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.post(`${API_BASE_URL}/favorites/${jobId}`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await axios.post(`${API_BASE_URL}/favorites/${jobId}`, {});
 
       // 즐겨찾기 목록 다시 불러오기
-      const listRes = await axios.get(`${API_BASE_URL}/favorites/me`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const listRes = await axios.get(`${API_BASE_URL}/favorites/me`);
       setFavorites(listRes.data);
 
       return { ok: true, favorited: response.data.favorited };
@@ -295,11 +290,8 @@ export function PilaConProvider({ children }) {
 
   const updateUser = async (updateData) => {
     if (!user) return { ok: false, error: 'Not logged in' };
-    const token = localStorage.getItem('token');
     try {
-      const res = await axios.post(`${API_BASE_URL}/auth/me`, updateData, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await axios.post(`${API_BASE_URL}/auth/me`, updateData);
       setUser(res.data);
       return { ok: true, data: res.data };
     } catch (error) {
@@ -334,14 +326,13 @@ export function PilaConProvider({ children }) {
 
   const uploadFile = async (file) => {
     if (!user) return { ok: false, error: 'Not logged in' };
-    const token = localStorage.getItem('token');
     const formData = new FormData();
     formData.append('file', file);
 
     try {
       const res = await axios.post(`${API_BASE_URL}/upload/profile`, formData, {
         headers: {
-          Authorization: `Bearer ${token}`,
+          
           'Content-Type': 'multipart/form-data',
         },
       });
@@ -360,14 +351,13 @@ export function PilaConProvider({ children }) {
 
   const uploadResume = async (file) => {
     if (!user) return { ok: false, error: 'Not logged in' };
-    const token = localStorage.getItem('token');
     const formData = new FormData();
     formData.append('file', file);
 
     try {
       const res = await axios.post(`${API_BASE_URL}/upload/resume`, formData, {
         headers: {
-          Authorization: `Bearer ${token}`,
+          
           'Content-Type': 'multipart/form-data',
         },
       });
@@ -386,14 +376,13 @@ export function PilaConProvider({ children }) {
 
   const uploadChatImage = async (roomId, file) => {
     if (!user) return { ok: false, error: 'Not logged in' };
-    const token = localStorage.getItem('token');
     const formData = new FormData();
     formData.append('file', file);
 
     try {
       const res = await axios.post(`${API_BASE_URL}/upload/chat/${roomId}`, formData, {
         headers: {
-          Authorization: `Bearer ${token}`,
+          
           'Content-Type': 'multipart/form-data',
         },
       });
@@ -444,10 +433,7 @@ export function PilaConProvider({ children }) {
         status: "active",
       };
 
-      const token = localStorage.getItem('token');
-      const response = await axios.post(`${API_BASE_URL}/jobs`, payload, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await axios.post(`${API_BASE_URL}/jobs`, payload);
       const newJob = response.data;
       const normalized = {
         ...newJob,
@@ -467,10 +453,7 @@ export function PilaConProvider({ children }) {
   const closeJob = async (jobId) => {
     if (!user) return { ok: false, error: 'Not logged in' };
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.patch(`${API_BASE_URL}/jobs/${jobId}/close`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await axios.patch(`${API_BASE_URL}/jobs/${jobId}/close`, {});
       const updatedJob = response.data;
       setJobs(prev => prev.map(j => j.id === jobId ? updatedJob : j));
       return { ok: true, data: updatedJob };
@@ -483,10 +466,7 @@ export function PilaConProvider({ children }) {
   const updateJob = async (jobId, jobDraft) => {
     if (!user) return { ok: false, error: 'Not logged in' };
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.patch(`${API_BASE_URL}/jobs/${jobId}`, jobDraft, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await axios.patch(`${API_BASE_URL}/jobs/${jobId}`, jobDraft);
       const updatedJob = response.data;
       const normalized = {
         ...updatedJob,
@@ -505,10 +485,7 @@ export function PilaConProvider({ children }) {
   const deleteJob = async (jobId) => {
     if (!user) return { ok: false, error: 'Not logged in' };
     try {
-      const token = localStorage.getItem('token');
-      await axios.delete(`${API_BASE_URL}/jobs/${jobId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await axios.delete(`${API_BASE_URL}/jobs/${jobId}`);
       setJobs(prev => prev.filter(j => String(j.id) !== String(jobId)));
       return { ok: true };
     } catch (error) {
@@ -521,12 +498,9 @@ export function PilaConProvider({ children }) {
     if (!user) return { ok: false, reason: 'unauthorized', message: '로그인이 필요합니다.' };
 
     try {
-      const token = localStorage.getItem('token');
       const response = await axios.post(`${API_BASE_URL}/jobs/${jobId}/apply`, {
         instructorProfileId,
         message
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
       });
 
       const newApp = response.data;
@@ -550,11 +524,8 @@ export function PilaConProvider({ children }) {
   };
 
   const getApplicantsByJobId = async (jobId) => {
-    const token = localStorage.getItem('token');
     try {
-      const response = await axios.get(`${API_BASE_URL}/applications/job/${jobId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await axios.get(`${API_BASE_URL}/applications/job/${jobId}`);
       return response.data;
     } catch (error) {
       console.error('Failed to fetch applicants:', error);
@@ -563,11 +534,8 @@ export function PilaConProvider({ children }) {
   };
 
   const markApplicationAsViewed = async (id) => {
-    const token = localStorage.getItem('token');
     try {
-      await axios.patch(`${API_BASE_URL}/applications/${id}/view`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await axios.patch(`${API_BASE_URL}/applications/${id}/view`, {});
       setApplications(prev => prev.map(a => a.id === id ? { ...a, isViewed: true, viewedAt: new Date() } : a));
       return { ok: true };
     } catch (error) {
@@ -577,11 +545,8 @@ export function PilaConProvider({ children }) {
   };
 
   const acceptApplication = async (id) => {
-    const token = localStorage.getItem('token');
     try {
-      const response = await axios.patch(`${API_BASE_URL}/applications/accept/${id}`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await axios.patch(`${API_BASE_URL}/applications/accept/${id}`, {});
       const updated = response.data;
       setApplications(prev => prev.map(a => a.id === id ? { ...a, ...updated } : a));
       return { ok: true, data: updated };
@@ -592,13 +557,10 @@ export function PilaConProvider({ children }) {
   };
 
   const cancelApplication = async (id, reason, detail) => {
-    const token = localStorage.getItem('token');
     try {
       const response = await axios.patch(`${API_BASE_URL}/applications/${id}/cancel`, {
         reason,
         detail
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
       });
 
       const updated = response.data;
@@ -612,25 +574,18 @@ export function PilaConProvider({ children }) {
 
   const saveProfile = async (profileData) => {
     if (!user) return { ok: false, error: 'Not logged in' };
-    const token = localStorage.getItem('token');
     try {
       let response;
       if (profileData.id && !String(profileData.id).startsWith('new_')) { // 이미 저장된 프로필(DB ID 존재)
-        response = await axios.patch(`${API_BASE_URL}/instructor-profiles/${profileData.id}`, profileData, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        response = await axios.patch(`${API_BASE_URL}/instructor-profiles/${profileData.id}`, profileData);
       } else {
         // eslint-disable-next-line no-unused-vars
         const { id, ...createData } = profileData;
-        response = await axios.post(`${API_BASE_URL}/instructor-profiles`, createData, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        response = await axios.post(`${API_BASE_URL}/instructor-profiles`, createData);
       }
 
       // 목록 갱신을 위해 전체 다시 불러오기 (isPrimary 동기화 등 복잡하므로)
-      const listRes = await axios.get(`${API_BASE_URL}/instructor-profiles`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const listRes = await axios.get(`${API_BASE_URL}/instructor-profiles`);
       setProfiles(listRes.data);
 
       return { ok: true, data: response.data };
@@ -642,11 +597,8 @@ export function PilaConProvider({ children }) {
 
   const deleteProfile = async (id) => {
     if (!user) return { ok: false, error: 'Not logged in' };
-    const token = localStorage.getItem('token');
     try {
-      await axios.delete(`${API_BASE_URL}/instructor-profiles/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await axios.delete(`${API_BASE_URL}/instructor-profiles/${id}`);
       setProfiles(prev => prev.filter(p => p.id !== id));
       return { ok: true };
     } catch (error) {
@@ -657,15 +609,10 @@ export function PilaConProvider({ children }) {
 
   const setPrimaryProfile = async (id) => {
     if (!user) return { ok: false, error: 'Not logged in' };
-    const token = localStorage.getItem('token');
     try {
-      await axios.post(`${API_BASE_URL}/instructor-profiles/${id}/set-primary`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await axios.post(`${API_BASE_URL}/instructor-profiles/${id}/set-primary`, {});
       // 목록 갱신
-      const listRes = await axios.get(`${API_BASE_URL}/instructor-profiles`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const listRes = await axios.get(`${API_BASE_URL}/instructor-profiles`);
       setProfiles(listRes.data);
       return { ok: true };
     } catch (error) {
@@ -675,11 +622,8 @@ export function PilaConProvider({ children }) {
   };
 
   const createChatRoom = async (applicationId) => {
-    const token = localStorage.getItem('token');
     try {
-      const response = await axios.post(`${API_BASE_URL}/chat/rooms`, { applicationId }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await axios.post(`${API_BASE_URL}/chat/rooms`, { applicationId });
       return { ok: true, data: response.data };
     } catch (error) {
       console.error('Failed to create chat room:', error);
@@ -688,11 +632,8 @@ export function PilaConProvider({ children }) {
   };
 
   const getChatRooms = async () => {
-    const token = localStorage.getItem('token');
     try {
-      const response = await axios.get(`${API_BASE_URL}/chat/rooms`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await axios.get(`${API_BASE_URL}/chat/rooms`);
       return response.data;
     } catch (error) {
       console.error('Failed to fetch chat rooms:', error);
@@ -701,11 +642,8 @@ export function PilaConProvider({ children }) {
   };
 
   const getChatMessages = async (roomId) => {
-    const token = localStorage.getItem('token');
     try {
-      const response = await axios.get(`${API_BASE_URL}/chat/rooms/${roomId}/messages`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await axios.get(`${API_BASE_URL}/chat/rooms/${roomId}/messages`);
       return response.data;
     } catch (error) {
       console.error('Failed to fetch chat messages:', error);
@@ -714,15 +652,12 @@ export function PilaConProvider({ children }) {
   };
 
   const sendChatMessage = async (roomId, content, type = 'text', imageUrl = null, imageKey = null) => {
-    const token = localStorage.getItem('token');
     try {
       const response = await axios.post(`${API_BASE_URL}/chat/rooms/${roomId}/messages`, {
         content,
         type,
         imageUrl,
         imageKey
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
       });
       return { ok: true, data: response.data };
     } catch (error) {
@@ -732,11 +667,8 @@ export function PilaConProvider({ children }) {
   };
 
   const getNotifications = async (page = 1) => {
-    const token = localStorage.getItem('token');
     try {
-      const res = await axios.get(`${API_BASE_URL}/notifications?page=${page}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await axios.get(`${API_BASE_URL}/notifications?page=${page}`);
       // 채팅 알림은 알림 페이지에서 제외
       if (res.data && res.data.items) {
         res.data.items = res.data.items.filter(n => {
@@ -752,11 +684,8 @@ export function PilaConProvider({ children }) {
   };
 
   const markNotificationAsRead = async (id) => {
-    const token = localStorage.getItem('token');
     try {
-      await axios.patch(`${API_BASE_URL}/notifications/${id}/read`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await axios.patch(`${API_BASE_URL}/notifications/${id}/read`, {});
       setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
       setUnreadCount(prev => Math.max(0, prev - 1));
       return { ok: true };
@@ -767,11 +696,8 @@ export function PilaConProvider({ children }) {
   };
 
   const markAllNotificationsAsRead = async () => {
-    const token = localStorage.getItem('token');
     try {
-      await axios.patch(`${API_BASE_URL}/notifications/read-all`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await axios.patch(`${API_BASE_URL}/notifications/read-all`, {});
       setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
       setUnreadCount(0);
       return { ok: true };
@@ -782,12 +708,10 @@ export function PilaConProvider({ children }) {
   };
 
   const fetchUnreadCount = async () => {
-    const token = localStorage.getItem('token');
+    
     if (!user || !token) return;
     try {
-      const res = await axios.get(`${API_BASE_URL}/notifications/unread-count`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await axios.get(`${API_BASE_URL}/notifications/unread-count`);
       setUnreadCount(res.data);
     } catch (e) {
       console.error("Failed to fetch unread count:", e);
@@ -796,14 +720,14 @@ export function PilaConProvider({ children }) {
 
   // SSE 연결
   useEffect(() => {
-    const token = localStorage.getItem('token');
+    
     if (!user || !token) return;
 
     fetchUnreadCount();
 
     let eventSource;
     const connectSSE = () => {
-      const token = localStorage.getItem('token');
+      
       if (!token) return;
 
       // EventSource는 헤더 전송을 못하므로 쿼리파라미터로 처리

@@ -19,15 +19,14 @@ export default function Login() {
 
     // URL에서 토큰 확인 및 처리
     useEffect(() => {
-        const token = searchParams.get('token');
+        const token = searchParams.get('accessToken');
         if (token) {
-            loginWithToken(token).then((ok) => {
-                if (ok) {
-                    navigate('/');
-                }
-            });
+            console.log("Token received from social login:", token);
+            localStorage.setItem("accessToken", token);
+            console.log("Token saved to localStorage successfully.");
+            window.location.href = "/";
         }
-    }, [searchParams, loginWithToken, navigate]);
+    }, [searchParams]);
 
     const handleSocialLogin = (provider) => {
         const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
