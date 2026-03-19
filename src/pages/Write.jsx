@@ -100,7 +100,12 @@ export default function Write() {
   // ✅ 초기 진입 시: 로컬 스토리지에서 임시저장 데이터 복원
   useEffect(() => {
     const loadCenters = async () => {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('accessToken');
+      
+      console.log(`[CreateJob Debug] accessToken exists=${!!token}`);
+      console.log(`[CreateJob Debug] Authorization=Bearer ${token ? token.substring(0, 20) + '...' : 'NONE'}`);
+      console.log(`[CreateJob Debug] fetching center profile...`);
+      
       if (!token || token === 'null' || token === 'undefined') {
         console.warn("No token found, skipping center fetch");
         alert("인증 정보가 없습니다. 다시 로그인해주세요.");

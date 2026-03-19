@@ -9,7 +9,7 @@ export async function fetchJobs() {
 }
 // Centers API
 export async function fetchCenters() {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('accessToken');
     const response = await fetch(`${API_BASE_URL}/centers`, {
         headers: {
             'Authorization': `Bearer ${token}`
@@ -25,7 +25,7 @@ export async function fetchCenters() {
 }
 
 export async function fetchCenter(id) {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('accessToken');
     const response = await fetch(`${API_BASE_URL}/centers/${id}`, {
         headers: {
             'Authorization': `Bearer ${token}`
@@ -36,7 +36,7 @@ export async function fetchCenter(id) {
 }
 
 export async function createCenter(centerData) {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('accessToken');
     const response = await fetch(`${API_BASE_URL}/centers`, {
         method: 'POST',
         headers: {
@@ -50,7 +50,7 @@ export async function createCenter(centerData) {
 }
 
 export async function updateCenter(id, centerData) {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('accessToken');
     const response = await fetch(`${API_BASE_URL}/centers/${id}`, {
         method: 'PATCH',
         headers: {
@@ -64,7 +64,7 @@ export async function updateCenter(id, centerData) {
 }
 
 export async function deleteCenter(id) {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('accessToken');
     const response = await fetch(`${API_BASE_URL}/centers/${id}`, {
         method: 'DELETE',
         headers: {
@@ -76,7 +76,7 @@ export async function deleteCenter(id) {
 }
 
 export async function analyzeJobPosting(text) {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('accessToken');
     const response = await fetch(`${API_BASE_URL}/ai/analyze`, {
         method: 'POST',
         headers: {
