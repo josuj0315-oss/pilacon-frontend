@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { usePilaCon } from '../store/pilaconStore';
 import PilaconLogo from '../components/PilaconLogo';
@@ -8,6 +8,7 @@ export default function Login() {
     const { localLogin, localSignup, loginWithToken } = usePilaCon();
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
+    const hasProcessedToken = useRef(false);
 
     const [mode, setMode] = useState('choice'); // 'choice', 'login', 'signup'
     const [formData, setFormData] = useState({
@@ -20,7 +21,8 @@ export default function Login() {
     // URL에서 토큰 확인 및 처리
     useEffect(() => {
         const token = searchParams.get('accessToken');
-        if (token) {
+        if (token && !hasProcessedToken.current) {
+            hasProcessedToken.current = true;
             console.log("\n--- [Login.jsx] Social Login Flow ---");
             console.log("1. Current URL:", window.location.href);
             console.log("2. Extracted Token:", token.substring(0, 15) + "...");

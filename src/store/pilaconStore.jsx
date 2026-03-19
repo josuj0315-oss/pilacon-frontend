@@ -2,16 +2,19 @@ import React, { createContext, useContext, useEffect, useMemo, useState } from "
 import axios from "axios";
 axios.interceptors.request.use((config) => {
   const token = localStorage.getItem("accessToken");
-  console.log(`[Axios] Request to ${config.url} with Auth Header: ${token ? token.substring(0, 15) + "..." : "NONE"}`);
   if (token) {
+    const authHeader = `Bearer ${token}`;
     if (!config.headers) {
       config.headers = {};
     }
     if (typeof config.headers.set === 'function') {
-      config.headers.set('Authorization', `Bearer ${token}`);
+      config.headers.set('Authorization', authHeader);
     } else {
-      config.headers.Authorization = `Bearer ${token}`;
+      config.headers.Authorization = authHeader;
     }
+    console.log(`[Axios] Request to ${config.url} with Auth Header: ${authHeader.substring(0, 20)}...`);
+  } else {
+    console.log(`[Axios] Request to ${config.url} with Auth Header: NONE`);
   }
   return config;
 });
@@ -159,8 +162,15 @@ export function PilaConProvider({ children }) {
     return Array.isArray(stored) ? stored : [];
   });
 
+  let isFetchingAuth = false;
+
   // 1. 초기 데이터 로드 (백엔드 API 호출)
   const fetchMyData = async (token) => {
+    if (isFetchingAuth) {
+      console.log("[Store] fetchMyData is already in flight. Skipping duplicate call.");
+      return;
+    }
+    isFetchingAuth = true;
     try {
       const authRes = await axios.get(`${API_BASE_URL}/auth/me`);
       setUser(authRes.data);
@@ -190,21 +200,29 @@ export function PilaConProvider({ children }) {
       const favRes = await axios.get(`${API_BASE_URL}/favorites/me`);
       setFavorites(favRes.data);
     } catch (e) { console.warn('Failed to fetch favorites:', e); }
+    finally {
+      isFetchingAuth = false;
+    }
   };
 
   // 1. 초기 데이터 로드 (백엔드 API 호출)
   useEffect(() => {
     const initData = async () => {
-      // 1. 토큰이 있으면 유저 데이터 가져오기
-      const token = localStorage.getItem("accessToken");
-      if (token) {
-        try {
-          await fetchMyData(token);
-        } finally {
+      // ✅ 1. 소셜 로그인 설정 중일 때는 전역 초기화를 방지합니다 (Login.jsx에 양도)
+      if (window.location.search.includes("accessToken=")) {
+        console.log("[Store] Omitted initial auth bootstrap to defer to social callback.");
+        setIsAuthLoading(false);
+      } else {
+        const token = localStorage.getItem("accessToken");
+        if (token) {
+          try {
+            await fetchMyData(token);
+          } finally {
+            setIsAuthLoading(false);
+          }
+        } else {
           setIsAuthLoading(false);
         }
-      } else {
-        setIsAuthLoading(false);
       }
 
       // 2. 공고 목록 가져오기 (비로그인 공유)
