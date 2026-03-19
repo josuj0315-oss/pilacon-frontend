@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { usePilaCon } from "./store/pilaconStore";
+import * as Sentry from "@sentry/react";
 import AppLayout from "./layouts/AppLayout";
 
 import Home from "./pages/Home";
@@ -62,6 +63,29 @@ export default function App() {
 
   return (
     <div id="appScreen">
+      {/* 배포 환경 Sentry 연동 확인을 위한 임시 테스트 버튼 (운영 확인 직후 바로 본 코드 제거 요망) */}
+      <button 
+        onClick={() => {
+          Sentry.captureException(new Error("Production frontend test"));
+        }}
+        style={{
+          position: "fixed",
+          top: "10px",
+          left: "10px",
+          zIndex: 9999,
+          background: "#ff4d4f",
+          color: "#fff",
+          padding: "10px 16px",
+          borderRadius: "6px",
+          border: "none",
+          cursor: "pointer",
+          fontWeight: "bold",
+          boxShadow: "0 2px 4px rgba(0,0,0,0.2)"
+        }}
+      >
+        Sentry Production Test
+      </button>
+
       <Routes>
         <Route element={<AppLayout />}>
           <Route path="/" element={<Home />} />
