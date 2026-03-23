@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { usePilaCon } from '../store/pilaconStore';
-import PilaconLogo from '../components/PilaconLogo';
 import './Login.css';
 
 export default function Login() {
@@ -176,11 +175,7 @@ export default function Login() {
     return (
         <div id="loginScreen" className="login-screen">
             <div className="login-container">
-                <div className="logo-area">
-                    <PilaconLogo size={100} />
-                </div>
-
-                <h1 className="app-title">PILACON</h1>
+                <h1 className="app-title">Fit Job</h1>
                 <p className="app-description">
                     강사와 센터를 잇는<br />
                     가장 완벽한 필라테스 파트너
