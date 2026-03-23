@@ -21,6 +21,7 @@ export default function Login() {
     // URL에서 토큰 확인 및 처리
     useEffect(() => {
         const token = searchParams.get('accessToken');
+        const refreshToken = searchParams.get('refreshToken');
         if (token && !hasProcessedToken.current) {
             hasProcessedToken.current = true;
             
@@ -32,6 +33,12 @@ export default function Login() {
             }
             
             localStorage.setItem("accessToken", token);
+            if (refreshToken) {
+                localStorage.setItem("refreshToken", refreshToken);
+            }
+            // 기존 auth 상태 강제 삭제하여 충돌 방지
+            localStorage.removeItem('auth');
+            
             if (isDev) {
                 console.log("\n--- [Login.jsx] Keys Verification ---");
                 console.log("- accessToken:", localStorage.getItem('accessToken') ? "EXISTS" : "NULL");
@@ -41,7 +48,7 @@ export default function Login() {
                 console.log("- LS.auth (key='auth'):", localStorage.getItem('auth') ? "EXISTS" : "NULL");
             }
             
-            loginWithToken(token).then((ok) => {
+            loginWithToken(token, refreshToken).then((ok) => {
                 if (isDev) console.log("4. fetchMyData finished. Login success?", ok);
                 if (ok) {
                     if (isDev) console.log("5. State is populated, navigating to Home.");
@@ -54,6 +61,13 @@ export default function Login() {
     }, [searchParams, loginWithToken, navigate]);
 
     const handleSocialLogin = (provider) => {
+        // 소셜 로그인 시작 전 기존 일반 로그인 인증 상태 초기화
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('auth');
+        localStorage.removeItem('token');
+        localStorage.removeItem('authToken');
+
         const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
         window.location.href = `${API_BASE}/auth/${provider}`;
     };

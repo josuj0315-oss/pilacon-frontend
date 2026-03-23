@@ -1,5 +1,21 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import axios from "axios";
+
+// 응답 인터셉터용 변수들
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (error, token = null) => {
+  failedQueue.forEach(prom => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+  failedQueue = [];
+};
+
 axios.interceptors.request.use((config) => {
   const hasManualAuth = config.headers?.Authorization || (typeof config.headers?.get === 'function' && config.headers.get('Authorization'));
   const token = localStorage.getItem("accessToken");
@@ -19,12 +35,69 @@ axios.interceptors.request.use((config) => {
     } else {
       config.headers.Authorization = authHeader;
     }
-    if (isDev) console.log(`[Axios Debug] url=${config.url}, key=accessToken, rawToken=${rawTokenLog}, finalAuthHeader=${authHeader.substring(0, 20)}...`);
-  } else {
-    if (isDev) console.log(`[Axios Debug] url=${config.url}, key=accessToken, rawToken=NONE, finalAuthHeader=NONE`);
   }
   return config;
 });
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+
+axios.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+    // 401이고 재시도한 적이 없으며, /auth/refresh 요청 자체가 아닌 경우
+    if (error.response?.status === 401 && !originalRequest._retry && !originalRequest.url.includes('/auth/refresh')) {
+      if (isRefreshing) {
+        return new Promise(function(resolve, reject) {
+          failedQueue.push({ resolve, reject });
+        }).then(token => {
+          originalRequest.headers['Authorization'] = 'Bearer ' + token;
+          return axios(originalRequest);
+        }).catch(err => {
+          return Promise.reject(err);
+        });
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      const refreshToken = localStorage.getItem('refreshToken');
+      if (!refreshToken) {
+        processQueue(error, null);
+        isRefreshing = false;
+        // 완전 로그아웃 처리
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        window.location.href = '/login';
+        return Promise.reject(error);
+      }
+
+      try {
+        const res = await axios.post(`${API_BASE_URL}/auth/refresh`, { refreshToken });
+        const newAccessToken = res.data.accessToken;
+        const newRefreshToken = res.data.refreshToken;
+        
+        localStorage.setItem('accessToken', newAccessToken);
+        localStorage.setItem('refreshToken', newRefreshToken);
+        
+        axios.defaults.headers.common['Authorization'] = 'Bearer ' + newAccessToken;
+        originalRequest.headers['Authorization'] = 'Bearer ' + newAccessToken;
+        
+        processQueue(null, newAccessToken);
+        isRefreshing = false;
+        return axios(originalRequest);
+      } catch (err) {
+        processQueue(err, null);
+        isRefreshing = false;
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        window.location.href = '/login';
+        return Promise.reject(err);
+      }
+    }
+    return Promise.reject(error);
+  }
+);
 
 import { jobs as seedJobs } from "../data/jobs";
 
@@ -124,8 +197,6 @@ export function getApplicationStatusLabel(status) {
   return map[status] || status || "심사중";
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
-
 export function PilaConProvider({ children }) {
   const [jobs, setJobs] = useState([]);
   const [profile, setProfile] = useState(null);
@@ -144,16 +215,12 @@ export function PilaConProvider({ children }) {
       applicant: { ...DEFAULT_NOTIFICATION_SETTINGS.applicant, ...(saved.applicant || {}) },
       owner: { ...DEFAULT_NOTIFICATION_SETTINGS.owner, ...(saved.owner || {}) },
       message: { ...DEFAULT_NOTIFICATION_SETTINGS.message, ...(saved.message || {}) },
-      extra: { ...DEFAULT_NOTIFICATION_SETTINGS.extra, ...(saved.extra || {}) },
     };
   });
 
   // ✅ Auth 상태 관리 (토큰과 유저 정보가 모두 있어야 로그인 상태로 간주)
-  const [user, setUser] = useState(() => {
-    const savedUser = readJSON(LS.auth, null);
-    const token = localStorage.getItem("accessToken");
-    return (savedUser && token) ? savedUser : null;
-  });
+  // ✅ Auth 상태 관리: 앱 시작 시 localStorage를 신뢰하지 않고 일단 null로 시작. /auth/me 응답 기준으로 상태 복구
+  const [user, setUser] = useState(null);
 
   const [isAuthLoading, setIsAuthLoading] = useState(() => !!localStorage.getItem("accessToken"));
 
@@ -179,13 +246,15 @@ export function PilaConProvider({ children }) {
     }
     isFetchingAuth = true;
     try {
-      const headers = tokenParam ? { Authorization: `Bearer ${tokenParam}` } : undefined;
-      const authRes = await axios.get(`${API_BASE_URL}/auth/me`, { headers });
+      const headers = tokenParam ? { Authorization: `Bearer ${tokenParam}`, 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' } : { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' };
+      const timestamp = new Date().getTime();
+      const authRes = await axios.get(`${API_BASE_URL}/auth/me?_t=${timestamp}`, { headers });
       setUser(authRes.data);
       writeJSON(LS.auth, authRes.data);
     } catch (e) {
       console.error('Failed to fetch user data (/auth/me):', e);
       localStorage.removeItem("accessToken");
+      localStorage.removeItem("refreshToken");
       setUser(null);
       writeJSON(LS.auth, null);
       throw e;
@@ -271,11 +340,14 @@ export function PilaConProvider({ children }) {
     }
   }, [user]);
 
-  const loginWithToken = async (token) => {
+  const loginWithToken = async (accessToken, refreshToken) => {
     try {
       setIsAuthLoading(true);
-      localStorage.setItem("accessToken", token);
-      await fetchMyData(token);
+      localStorage.setItem("accessToken", accessToken);
+      if (refreshToken) {
+        localStorage.setItem("refreshToken", refreshToken);
+      }
+      await fetchMyData(accessToken);
       return true;
     } catch (e) {
       console.error('Login failed', e);
@@ -297,8 +369,9 @@ export function PilaConProvider({ children }) {
   const localSignup = async (details) => {
     try {
       const res = await axios.post(`${API_BASE_URL}/auth/signup`, details);
-      const { user: userData, token } = res.data;
-      localStorage.setItem("accessToken", token);
+      const { user: userData, accessToken, refreshToken } = res.data;
+      localStorage.setItem("accessToken", accessToken);
+      localStorage.setItem("refreshToken", refreshToken);
       setUser(userData);
       return { ok: true };
     } catch (e) {
@@ -310,9 +383,10 @@ export function PilaConProvider({ children }) {
   const localLogin = async (details) => {
     try {
       const res = await axios.post(`${API_BASE_URL}/auth/login`, details);
-      const { token } = res.data;
-      localStorage.setItem("accessToken", token);
-      await fetchMyData(token);
+      const { accessToken, refreshToken } = res.data;
+      localStorage.setItem("accessToken", accessToken);
+      localStorage.setItem("refreshToken", refreshToken);
+      await fetchMyData(accessToken);
       return { ok: true };
     } catch (e) {
       console.error('Login failed', e);
@@ -451,7 +525,18 @@ export function PilaConProvider({ children }) {
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      await axios.post(`${API_BASE_URL}/auth/logout`);
+    } catch (e) { console.warn('Logout hook failed', e); }
+    
+    // 완전 삭제
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('token');
+    localStorage.removeItem('authToken');
+    localStorage.removeItem(LS.auth); 
+    localStorage.removeItem('auth');
     setUser(null);
     setProfiles([]);
     setFavorites([]);
