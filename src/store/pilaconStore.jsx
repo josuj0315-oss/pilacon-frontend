@@ -45,8 +45,14 @@ axios.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
-    // 401이고 재시도한 적이 없으며, /auth/refresh 요청 자체가 아닌 경우
-    if (error.response?.status === 401 && !originalRequest._retry && !originalRequest.url.includes('/auth/refresh')) {
+    // 401이고 재시도한 적이 없으며, 로그인 등 인증을 위한 기본 엔드포인트가 아닐 때만 intercept
+    if (
+      error.response?.status === 401 &&
+      !originalRequest._retry &&
+      !originalRequest.url.includes('/auth/refresh') &&
+      !originalRequest.url.includes('/auth/login') &&
+      !originalRequest.url.includes('/auth/signup')
+    ) {
       if (isRefreshing) {
         return new Promise(function(resolve, reject) {
           failedQueue.push({ resolve, reject });
