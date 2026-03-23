@@ -246,7 +246,7 @@ export function PilaConProvider({ children }) {
     }
     isFetchingAuth = true;
     try {
-      const headers = tokenParam ? { Authorization: `Bearer ${tokenParam}`, 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' } : { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' };
+      const headers = tokenParam ? { Authorization: `Bearer ${tokenParam}` } : {};
       const timestamp = new Date().getTime();
       const authRes = await axios.get(`${API_BASE_URL}/auth/me?_t=${timestamp}`, { headers });
       setUser(authRes.data);
@@ -382,8 +382,7 @@ export function PilaConProvider({ children }) {
 
   const localLogin = async (details) => {
     try {
-      const headers = { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' };
-      const res = await axios.post(`${API_BASE_URL}/auth/login`, details, { headers });
+      const res = await axios.post(`${API_BASE_URL}/auth/login`, details);
       const { user: userData, accessToken, refreshToken } = res.data;
       
       localStorage.setItem("accessToken", accessToken);
