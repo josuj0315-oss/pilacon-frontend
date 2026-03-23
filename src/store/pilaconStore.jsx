@@ -382,10 +382,18 @@ export function PilaConProvider({ children }) {
 
   const localLogin = async (details) => {
     try {
-      const res = await axios.post(`${API_BASE_URL}/auth/login`, details);
-      const { accessToken, refreshToken } = res.data;
+      const headers = { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' };
+      const res = await axios.post(`${API_BASE_URL}/auth/login`, details, { headers });
+      const { user: userData, accessToken, refreshToken } = res.data;
+      
       localStorage.setItem("accessToken", accessToken);
       localStorage.setItem("refreshToken", refreshToken);
+      
+      if (userData) {
+        setUser(userData);
+        writeJSON(LS.auth, userData);
+      }
+      
       await fetchMyData(accessToken);
       return { ok: true };
     } catch (e) {
