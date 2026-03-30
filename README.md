@@ -14,3 +14,25 @@ The React Compiler is not enabled on this template because of its impact on dev 
 ## Expanding the ESLint configuration
 
 If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+
+## Ncloud SMS phone verification
+
+This frontend assumes that phone verification is handled by the backend, and that the backend calls Ncloud SENS.
+
+Set the API base URL in `.env`:
+
+```bash
+VITE_API_BASE_URL=http://localhost:3000
+```
+
+Expected backend endpoints:
+
+1. `POST /auth/phone/request`
+   Request body: `{ "phone": "01012345678" }`
+2. `POST /auth/phone/verify`
+   Request body: `{ "phone": "01012345678", "code": "123456" }`
+   Response example: `{ "verified": true, "verificationToken": "..." }`
+3. `POST /auth/signup`
+   Request body should accept `phone` and optionally `phoneVerificationToken`
+
+Do not call Ncloud directly from the browser. The Ncloud access key, secret key, and SMS signature generation must stay on the server.

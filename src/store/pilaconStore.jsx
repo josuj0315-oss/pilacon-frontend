@@ -230,11 +230,75 @@ export function PilaConProvider({ children }) {
   const [recentlyViewedJobs, setRecentlyViewedJobs] = useState(() => readJSON(LS.recentlyViewed, []));
   const [blockedUsers, setBlockedUsers] = useState(() => readJSON(LS.blockedUsers, []));
 
-  /** ✅ applications: LocalStorage -> 없으면 [] */
   const [applications, setApplications] = useState(() => {
     const stored = readJSON(LS.applications, []);
     return Array.isArray(stored) ? stored : [];
   });
+
+  const [toasts, setToasts] = useState([]);
+  const [globalModal, setGlobalModal] = useState(null);
+  const [fullError, setFullError] = useState(null);
+
+  const showToast = (message, type = 'success', duration = 2500, onRetry = null) => {
+    setToasts(prev => {
+      // 1. 중복 메시지 방지
+      if (prev.some(t => t.message === message)) return prev;
+
+      const id = Date.now();
+      const newToast = { id, message, type, onRetry };
+
+      // 2. 큐 관리 (최대 3개)
+      const next = [...prev, newToast].slice(-3);
+
+      setTimeout(() => {
+        setToasts(current => current.filter(t => t.id !== id));
+      }, duration);
+
+      return next;
+    });
+  };
+
+  const openModal = (options) => {
+    setGlobalModal({
+      id: Date.now(),
+      ...options,
+      onClose: () => setGlobalModal(null)
+    });
+  };
+
+  const confirm = (title, message, options = {}) => {
+    return new Promise((resolve) => {
+      setGlobalModal({
+        id: Date.now(),
+        title,
+        message,
+        confirmText: options.confirmText || '확인',
+        cancelText: options.cancelText || '취소',
+        type: options.type || 'confirm',
+        isDanger: options.isDanger || options.type === 'danger' || false,
+        onConfirm: () => {
+          setGlobalModal(null);
+          resolve(true);
+        },
+        onCancel: () => {
+          setGlobalModal(null);
+          resolve(false);
+        },
+        onClose: () => {
+          setGlobalModal(null);
+          resolve(false);
+        }
+      });
+    });
+  };
+
+  const showFullError = (title, message, onRetry = null) => {
+    setFullError({ title, message, onRetry });
+  };
+
+  const closeFullError = () => {
+    setFullError(null);
+  };
 
   let isFetchingAuth = false;
 
@@ -316,6 +380,7 @@ export function PilaConProvider({ children }) {
         }
       } catch (error) {
         console.error('Failed to fetch jobs:', error);
+        showFullError("서버 연결 실패", "공고 목록을 불러오지 못했습니다. 서버 상태를 확인하거나 잠시 후 다시 시도해주세요.", () => window.location.reload());
         setJobs(seedJobs);
       } finally {
         setLoading(false);
@@ -454,6 +519,42 @@ export function PilaConProvider({ children }) {
     } catch (error) {
       console.error('Failed to check username:', error);
       return { available: false };
+    }
+  };
+
+  const requestPhoneVerification = async (phone) => {
+    try {
+      const res = await axios.post(`${API_BASE_URL}/auth/phone/request`, { phone });
+      return {
+        ok: true,
+        message: res.data?.message || '인증번호를 전송했습니다.',
+        data: res.data,
+      };
+    } catch (error) {
+      console.error('Failed to request phone verification:', error);
+      return {
+        ok: false,
+        error: error.response?.data?.message || '인증번호 전송에 실패했습니다.',
+      };
+    }
+  };
+
+  const verifyPhoneCode = async (phone, code) => {
+    try {
+      const res = await axios.post(`${API_BASE_URL}/auth/phone/verify`, { phone, code });
+      return {
+        ok: true,
+        verified: res.data?.verified ?? true,
+        verificationToken: res.data?.verificationToken ?? res.data?.token ?? null,
+        message: res.data?.message || '휴대폰 인증이 완료되었습니다.',
+        data: res.data,
+      };
+    } catch (error) {
+      console.error('Failed to verify phone code:', error);
+      return {
+        ok: false,
+        error: error.response?.data?.message || '인증번호 확인에 실패했습니다.',
+      };
     }
   };
 
@@ -647,7 +748,10 @@ export function PilaConProvider({ children }) {
         message
       });
 
-      const newApp = response.data;
+      const newApp = { 
+        ...response.data, 
+        jobId: jobId // Ensure jobId is present for frontend filtering
+      };
       setApplications((prev) => {
         const index = prev.findIndex(a => a.id === newApp.id);
         if (index > -1) {
@@ -762,6 +866,16 @@ export function PilaConProvider({ children }) {
     } catch (error) {
       console.error('Failed to set primary profile:', error);
       return { ok: false, error: error.response?.data?.message || '대표 설정에 실패했습니다.' };
+    }
+  };
+
+  const refreshApplications = async () => {
+    if (!user) return;
+    try {
+      const appRes = await axios.get(`${API_BASE_URL}/applications/my`);
+      setApplications(appRes.data);
+    } catch (e) {
+      console.warn('Failed to refresh applications:', e);
     }
   };
 
@@ -957,6 +1071,8 @@ export function PilaConProvider({ children }) {
       jobs,
       myJobs,
       appliedList,
+      applications,
+      refreshApplications,
       favorites,
       isFavorited,
       toggleFavorite,
@@ -989,6 +1105,8 @@ export function PilaConProvider({ children }) {
       updateUser,
       checkNickname,
       checkUsername,
+      requestPhoneVerification,
+      verifyPhoneCode,
       uploadFile,
       uploadResume,
       uploadChatImage,
@@ -1019,8 +1137,16 @@ export function PilaConProvider({ children }) {
       blockedUsers,
       blockUser,
       unblockUser,
+      toasts,
+      showToast,
+      globalModal,
+      openModal,
+      confirm,
+      fullError,
+      showFullError,
+      closeFullError,
     }),
-    [jobs, myJobs, appliedList, favorites, loading, isAuthLoading, user, profiles, notifications, unreadCount, unreadMessageCount, lastChatMessage, notificationSettings, recentlyViewedJobs, blockedUsers]
+    [jobs, myJobs, appliedList, applications, refreshApplications, favorites, loading, isAuthLoading, user, profiles, notifications, unreadCount, unreadMessageCount, lastChatMessage, notificationSettings, recentlyViewedJobs, blockedUsers, toasts, globalModal, fullError, applyToJob, closeJob, createJob, deleteJob, deleteProfile, isFavorited, localLogin, loginWithToken, saveProfile, setPrimaryProfile, toggleFavorite, updateJob, updateUser, uploadChatImage, uploadFile, uploadResume]
   );
 
   return <PilaConContext.Provider value={value}>{children}</PilaConContext.Provider>;

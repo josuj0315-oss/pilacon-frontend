@@ -37,10 +37,13 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000
 export default function JobEdit() {
     const { id } = useParams();
     const navigate = useNavigate();
-    const { updateJob, user } = usePilaCon();
+    const { updateJob, user, showToast } = usePilaCon();
+    const titleRef = React.useRef(null);
+    const payRef = React.useRef(null);
     const startDateRef = React.useRef(null);
     const endDateRef = React.useRef(null);
     const todayStr = new Date().toISOString().split('T')[0];
+    const [errors, setErrors] = useState({});
     const { setCategory: setGlobalCategory } = useCategory();
 
     const [loading, setLoading] = useState(true);
@@ -76,14 +79,14 @@ export default function JobEdit() {
                 const job = res.data;
 
                 if (!job) {
-                    alert("공고를 찾을 수 없습니다.");
+                    showToast("공고를 찾을 수 없습니다.", "error");
                     navigate("/");
                     return;
                 }
 
                 // 권한 체크
                 if (user && String(job.userId) !== String(user.id)) {
-                    alert("수정 권한이 없습니다.");
+                    showToast("수정 권한이 없습니다.", "error");
                     navigate(`/jobs/${id}`);
                     return;
                 }
@@ -115,7 +118,7 @@ export default function JobEdit() {
                 });
             } catch (err) {
                 console.error("Failed to fetch job for edit:", err);
-                alert("데이터를 불러오는데 실패했습니다.");
+                showToast("데이터를 불러오는데 실패했습니다.", "error");
                 navigate(-1);
             } finally {
                 setLoading(false);
@@ -160,16 +163,27 @@ export default function JobEdit() {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        if (!newPost.title.trim()) {
-            alert("공고 제목을 입력해주세요.");
-            return;
-        }
-
+        const newErrors = {};
+        if (!newPost.title.trim()) newErrors.title = "공고 제목을 입력해주세요.";
+        
         const payNumber = Number(String(newPost.pay ?? "").replace(/\D/g, ""));
-        if (!payNumber) {
-            alert("급여를 입력해주세요.");
+        if (!payNumber) newErrors.pay = "급여를 입력해주세요.";
+        
+        if (!newPost.workDate) newErrors.workDate = "날짜를 선택해주세요.";
+        if (!newPost.isToday && !newPost.workEndDate) newErrors.workEndDate = "기본 종료 날짜를 선택해주세요.";
+
+        if (Object.keys(newErrors).length > 0) {
+            setErrors(newErrors);
+            showToast("입력되지 않은 필수 항목이 있습니다.", "error");
+            
+            if (newErrors.title) titleRef.current?.focus();
+            else if (newErrors.pay) payRef.current?.focus();
+            else if (newErrors.workDate) startDateRef.current?.focus();
+            else if (newErrors.workEndDate) endDateRef.current?.focus();
             return;
         }
+        
+        setErrors({});
 
         const payload = {
             title: newPost.title,
@@ -195,10 +209,10 @@ export default function JobEdit() {
         const result = await updateJob(id, payload);
 
         if (result.ok) {
-            alert("공고가 수정되었습니다.");
+            showToast("공고가 수정되었습니다!", "success");
             navigate(`/jobs/${id}`);
         } else {
-            alert("공고 수정에 실패했습니다. " + (result.error?.response?.data?.message || ""));
+            showToast("공고 수정에 실패했습니다. " + (result.error?.response?.data?.message || ""), "error");
         }
     };
 
@@ -285,15 +299,20 @@ export default function JobEdit() {
                             </select>
                         </div>
 
-                        <div className="field">
+                        <div className={`field ${errors.title ? 'shake' : ''}`}>
                             <label className="label">공고 제목 <span className="required">*</span></label>
                             <input
+                                ref={titleRef}
                                 type="text"
                                 placeholder="예: XX필라테스 내일 대강 급하게 구합니다"
-                                className="input"
+                                className={`input ${errors.title ? 'field-error' : ''}`}
                                 value={newPost.title}
-                                onChange={(e) => setNewPost({ ...newPost, title: e.target.value })}
+                                onChange={(e) => {
+                                    setNewPost({ ...newPost, title: e.target.value });
+                                    if (errors.title) setErrors(prev => ({ ...prev, title: null }));
+                                }}
                             />
+                            {errors.title && <p className="field-caption" style={{ color: '#ef4444' }}>{errors.title}</p>}
                         </div>
                     </div>
 
@@ -325,7 +344,7 @@ export default function JobEdit() {
                             </div>
                             <div className="date-range-grid">
                                 <div
-                                    className={`date-input-wrapper ${newPost.isToday ? 'disabled' : ''}`}
+                                    className={`date-input-wrapper ${newPost.isToday ? 'disabled' : ''} ${errors.workDate ? 'field-error' : ''} ${errors.workDate ? 'shake' : ''}`}
                                     onClick={() => !newPost.isToday && startDateRef.current?.showPicker()}
                                 >
                                     <div className="date-display" data-placeholder="시작일">
@@ -336,14 +355,17 @@ export default function JobEdit() {
                                         type="date"
                                         className="real-date-input"
                                         value={newPost.workDate}
-                                        onChange={(e) => handleStartDateChange(e.target.value)}
+                                        onChange={(e) => {
+                                            handleStartDateChange(e.target.value);
+                                            if (errors.workDate) setErrors(prev => ({ ...prev, workDate: null }));
+                                        }}
                                         disabled={newPost.isToday}
                                         min={todayStr}
                                     />
                                 </div>
                                 <span className="date-separator">~</span>
                                 <div
-                                    className={`date-input-wrapper ${(newPost.isToday || !newPost.workDate) ? 'disabled' : ''}`}
+                                    className={`date-input-wrapper ${(newPost.isToday || !newPost.workDate) ? 'disabled' : ''} ${errors.workEndDate ? 'field-error' : ''} ${errors.workEndDate ? 'shake' : ''}`}
                                     onClick={() => !(newPost.isToday || !newPost.workDate) && endDateRef.current?.showPicker()}
                                 >
                                     <div className="date-display" data-placeholder="종료일">
@@ -354,12 +376,20 @@ export default function JobEdit() {
                                         type="date"
                                         className="real-date-input"
                                         value={newPost.workEndDate}
-                                        onChange={(e) => setNewPost({ ...newPost, workEndDate: e.target.value })}
+                                        onChange={(e) => {
+                                            setNewPost({ ...newPost, workEndDate: e.target.value });
+                                            if (errors.workEndDate) setErrors(prev => ({ ...prev, workEndDate: null }));
+                                        }}
                                         disabled={newPost.isToday || !newPost.workDate}
                                         min={newPost.workDate || todayStr}
                                     />
                                 </div>
                             </div>
+                            {(errors.workDate || errors.workEndDate) && (
+                                <p className="field-caption" style={{ color: '#ef4444' }}>
+                                    {errors.workDate || errors.workEndDate}
+                                </p>
+                            )}
                         </div>
 
                         <div className="field">
@@ -389,10 +419,11 @@ export default function JobEdit() {
                     </div>
 
                     <div className="form-section">
-                        <div className="field">
+                        <div className={`field ${errors.pay ? 'shake' : ''}`}>
                             <label className="label">급여 <span className="required">*</span></label>
                             <input
-                                className="input"
+                                ref={payRef}
+                                className={`input ${errors.pay ? 'field-error' : ''}`}
                                 type="text"
                                 inputMode="numeric"
                                 placeholder="예: 30000"
@@ -400,8 +431,10 @@ export default function JobEdit() {
                                 onChange={(e) => {
                                     const onlyNumber = e.target.value.replace(/\D/g, "");
                                     setNewPost({ ...newPost, pay: onlyNumber });
+                                    if (errors.pay) setErrors(prev => ({ ...prev, pay: null }));
                                 }}
                             />
+                            {errors.pay && <p className="field-caption" style={{ color: '#ef4444' }}>{errors.pay}</p>}
                         </div>
 
                         <div className="grid2">

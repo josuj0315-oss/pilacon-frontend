@@ -10,7 +10,8 @@ export default function InstructorProfileList({
     onView,
     onDelete,
     onSetPrimary,
-    initialMode
+    initialMode,
+    fromJobId
 }) {
     const navigate = useNavigate();
     const [isTypePickerOpen, setIsTypePickerOpen] = React.useState(initialMode === "new");
@@ -69,7 +70,10 @@ export default function InstructorProfileList({
     return (
         <div className="profile-manager-page">
             <header className="manager-header">
-                <button className="back-btn" onClick={() => navigate("/mypage")}>
+                <button 
+                    className="back-btn" 
+                    onClick={() => fromJobId ? navigate(`/jobs/${fromJobId}`) : navigate("/mypage")}
+                >
                     <ArrowLeft size={24} color="#1e293b" />
                 </button>
                 <h1 className="header-title">강사 이력서 등록 및 관리</h1>

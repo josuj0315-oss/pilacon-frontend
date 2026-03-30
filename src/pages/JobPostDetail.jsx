@@ -26,12 +26,21 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000
 export default function JobPostDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { jobs, user, deleteJob, loading: storeLoading, isFavorited, toggleFavorite } = usePilaCon();
+  const { jobs, user, deleteJob, loading: storeLoading, isFavorited, toggleFavorite, applications, refreshApplications, showToast, confirm } = usePilaCon();
 
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showApplySheet, setShowApplySheet] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
+
+  // 이미 지원했는지 확인 (취소된 경우 제외)
+  const existingApplication = (applications || []).find(
+    (a) => (
+      String(a.jobId) === String(id) || 
+      String(a.job?.id) === String(id) || 
+      String(a.job_id) === String(id)
+    ) && a.status !== 'canceled'
+  );
 
   useEffect(() => {
     const fetchJob = async () => {
@@ -57,6 +66,13 @@ export default function JobPostDetail() {
       fetchJob();
     }
   }, [id, jobs]);
+
+  // mount 시 또는 id 변경 시 지원 내역 최신화
+  useEffect(() => {
+    if (user && refreshApplications) {
+      refreshApplications();
+    }
+  }, [id, user]);
 
   const favorited = job ? isFavorited(job.id) : false;
 
@@ -95,20 +111,21 @@ export default function JobPostDetail() {
   const handleApplyClick = () => {
     if (isClosed) return;
     if (!user) {
-      alert("로그인이 필요합니다.");
+      showToast("로그인이 필요합니다.", "info");
       return;
     }
     setShowApplySheet(true);
   };
 
   const handleDelete = async () => {
-    if (window.confirm("정말 삭제할까요? 삭제하면 되돌릴 수 없습니다.")) {
+    const ok = await confirm("공고 삭제", "정말 삭제할까요? 삭제하면 되돌릴 수 없습니다.");
+    if (ok) {
       const res = await deleteJob(job.id);
       if (res.ok) {
-        alert("공고가 삭제되었습니다.");
+        showToast("공고가 삭제되었습니다.", "success");
         navigate("/activity?tab=recruitment");
       } else {
-        alert("삭제에 실패했습니다.");
+        showToast("삭제에 실패했습니다.", "error");
       }
     }
   };
@@ -405,6 +422,15 @@ export default function JobPostDetail() {
             >
               <Info size={20} strokeWidth={3} />
               모집이 완료된 공고입니다
+            </button>
+          ) : existingApplication ? (
+            <button
+              className="w-full h-[58px] bg-gray-100 text-gray-400 rounded-2xl text-[16px] font-black flex items-center justify-center gap-2 cursor-not-allowed shadow-inner"
+              onClick={() => navigate(`/activity?view=appliedDetail&id=${existingApplication.id}`)}
+              disabled
+            >
+              <Activity size={20} className="text-gray-300" strokeWidth={3} />
+              이미 지원한 공고입니다
             </button>
           ) : (
             <button

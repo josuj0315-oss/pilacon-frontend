@@ -2,9 +2,11 @@ import React, { useState, useEffect } from "react";
 import "./modal.css";
 import { usePilaCon } from "../store/pilaconStore";
 import { useNavigate } from "react-router-dom";
+import { useBodyScrollLock } from "../utils/hooks";
 
 export default function ApplyConfirmSheet({ job, onClose, onApplySuccess }) {
-    const { profiles, applyToJob, user } = usePilaCon();
+    useBodyScrollLock();
+    const { profiles, applyToJob, user, showToast } = usePilaCon();
     const navigate = useNavigate();
 
     const isSubJob = job.type === "sub" || job.type === "short";
@@ -32,14 +34,14 @@ export default function ApplyConfirmSheet({ job, onClose, onApplySuccess }) {
         try {
             const res = await applyToJob(job.id, selectedProfileId, selectedProfile?.message);
             if (res.ok) {
-                alert("지원 완료되었습니다!");
+                showToast("지원 완료되었습니다!", "success");
                 onApplySuccess?.();
             } else {
-                alert(res.message || "지원 중 오류가 발생했습니다.");
+                showToast(res.message || "지원 중 오류가 발생했습니다.", "error");
             }
         } catch (err) {
             console.error(err);
-            alert("지원 중 오류가 발생했습니다.");
+            showToast("지원 중 오류가 발생했습니다.", "error");
         } finally {
             setLoading(false);
         }
@@ -59,7 +61,7 @@ export default function ApplyConfirmSheet({ job, onClose, onApplySuccess }) {
                         </p>
                         <button
                             className="apply-btn"
-                            onClick={() => navigate("/profile/edit")}
+                            onClick={() => navigate(`/profile/edit?mode=new&fromJobId=${job.id}&jobType=${requiredType}`)}
                         >
                             프로필 만들러 가기
                         </button>

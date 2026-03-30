@@ -14,7 +14,7 @@ const STEPS = [
 
 
 export default function SignupWizard() {
-    const { localSignup, checkUsername } = usePilaCon();
+    const { localSignup, checkUsername, requestPhoneVerification, verifyPhoneCode } = usePilaCon();
     const navigate = useNavigate();
     const [step, setStep] = useState(1);
     const [formData, setFormData] = useState({
@@ -24,7 +24,8 @@ export default function SignupWizard() {
         passwordConfirm: '',
         name: '',
         phone: '',
-        verificationCode: ''
+        verificationCode: '',
+        phoneVerificationToken: ''
     });
 
     const [status, setStatus] = useState({
@@ -35,6 +36,10 @@ export default function SignupWizard() {
         nameValid: false,
         phoneRequested: false,
         phoneVerified: false,
+        phoneMessage: '',
+        phoneMessageType: 'info',
+        phoneRequesting: false,
+        phoneVerifying: false,
         timer: 300,
         terms: {
             all: false,
@@ -46,6 +51,9 @@ export default function SignupWizard() {
     });
 
     const timerRef = useRef(null);
+
+    const normalizePhone = (val) => val.replace(/\D/g, '').slice(0, 11);
+    const isPhoneValid = (val) => /^01\d{8,9}$/.test(val);
 
     // --- ID Step Logic ---
     const validateUsername = (val) => {
@@ -124,6 +132,154 @@ export default function SignupWizard() {
         return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
     };
 
+    useEffect(() => {
+        return () => {
+            if (timerRef.current) clearInterval(timerRef.current);
+        };
+    }, []);
+
+    const updatePhone = (value) => {
+        const nextPhone = normalizePhone(value);
+        setFormData(prev => ({
+            ...prev,
+            phone: nextPhone,
+            verificationCode: '',
+            phoneVerificationToken: ''
+        }));
+        setStatus(prev => ({
+            ...prev,
+            phoneRequested: false,
+            phoneVerified: false,
+            phoneMessage: '',
+            phoneMessageType: 'info',
+            timer: 300
+        }));
+        if (timerRef.current) clearInterval(timerRef.current);
+    };
+
+    const updateVerificationCode = (value) => {
+        setFormData(prev => ({
+            ...prev,
+            verificationCode: value.replace(/\D/g, '').slice(0, 6)
+        }));
+        setStatus(prev => ({
+            ...prev,
+            phoneVerified: false,
+            phoneMessage: '',
+            phoneMessageType: 'info'
+        }));
+    };
+
+    const handleRequestPhoneVerification = async () => {
+        if (!isPhoneValid(formData.phone)) {
+            setStatus(prev => ({
+                ...prev,
+                phoneRequested: false,
+                phoneVerified: false,
+                phoneMessage: '올바른 휴대폰 번호를 입력해 주세요.',
+                phoneMessageType: 'error'
+            }));
+            return;
+        }
+
+        setStatus(prev => ({
+            ...prev,
+            phoneRequesting: true,
+            phoneVerified: false,
+            phoneMessage: '',
+            phoneMessageType: 'info'
+        }));
+
+        const res = await requestPhoneVerification(formData.phone);
+
+        if (!res.ok) {
+            setStatus(prev => ({
+                ...prev,
+                phoneRequesting: false,
+                phoneRequested: false,
+                phoneMessage: res.error,
+                phoneMessageType: 'error'
+            }));
+            return;
+        }
+
+        startTimer();
+        setFormData(prev => ({
+            ...prev,
+            verificationCode: '',
+            phoneVerificationToken: ''
+        }));
+        setStatus(prev => ({
+            ...prev,
+            phoneRequesting: false,
+            phoneVerified: false,
+            phoneMessage: res.message,
+            phoneMessageType: 'success'
+        }));
+    };
+
+    const handleVerifyPhoneCode = async () => {
+        if (!status.phoneRequested) {
+            setStatus(prev => ({
+                ...prev,
+                phoneMessage: '먼저 인증번호를 요청해 주세요.',
+                phoneMessageType: 'error'
+            }));
+            return;
+        }
+
+        if (status.timer <= 0) {
+            setStatus(prev => ({
+                ...prev,
+                phoneMessage: '인증 시간이 만료되었습니다. 다시 요청해 주세요.',
+                phoneMessageType: 'error'
+            }));
+            return;
+        }
+
+        if (formData.verificationCode.length !== 6) {
+            setStatus(prev => ({
+                ...prev,
+                phoneMessage: '인증번호 6자리를 입력해 주세요.',
+                phoneMessageType: 'error'
+            }));
+            return;
+        }
+
+        setStatus(prev => ({
+            ...prev,
+            phoneVerifying: true,
+            phoneMessage: '',
+            phoneMessageType: 'info'
+        }));
+
+        const res = await verifyPhoneCode(formData.phone, formData.verificationCode);
+
+        if (!res.ok || res.verified === false) {
+            setStatus(prev => ({
+                ...prev,
+                phoneVerifying: false,
+                phoneVerified: false,
+                phoneMessage: res.error || '인증번호가 올바르지 않습니다.',
+                phoneMessageType: 'error'
+            }));
+            return;
+        }
+
+        if (timerRef.current) clearInterval(timerRef.current);
+        setFormData(prev => ({
+            ...prev,
+            phoneVerificationToken: res.verificationToken || ''
+        }));
+        setStatus(prev => ({
+            ...prev,
+            phoneVerifying: false,
+            phoneVerified: true,
+            phoneMessage: res.message,
+            phoneMessageType: 'success'
+        }));
+    };
+
     // --- Terms Step Logic ---
     const toggleTerm = (key) => {
         if (key === 'all') {
@@ -160,13 +316,14 @@ export default function SignupWizard() {
                 name: formData.name,
                 email: formData.email,
                 phone: formData.phone,
+                phoneVerificationToken: formData.phoneVerificationToken || undefined,
                 marketingAgree: status.terms.marketing
             };
             const res = await localSignup(finalData);
             if (res.ok) {
                 navigate('/');
             } else {
-                alert(res.error);
+                showToast(res.error || "회원가입 중 오류가 발생했습니다.", "error");
             }
         }
     };
@@ -177,6 +334,14 @@ export default function SignupWizard() {
     };
 
     const handleClear = (key) => {
+        if (key === 'phone') {
+            updatePhone('');
+            return;
+        }
+        if (key === 'verificationCode') {
+            updateVerificationCode('');
+            return;
+        }
         setFormData({ ...formData, [key]: '' });
     };
 
@@ -187,7 +352,7 @@ export default function SignupWizard() {
             case 2: return status.emailValid;
             case 3: return status.passwordValid;
             case 4: return status.nameValid;
-            case 5: return formData.verificationCode.length === 6;
+            case 5: return status.phoneVerified;
             case 6: return status.terms.age15 && status.terms.service && status.terms.privacy;
             default: return false;
         }
@@ -319,27 +484,63 @@ export default function SignupWizard() {
                             <div className="input-container" style={{ flex: 1, marginBottom: 0 }}>
                                 <input
                                     type="tel"
-                                    className="wizard-input"
+                                    className={`wizard-input ${formData.phone && !isPhoneValid(formData.phone) ? 'error' : ''}`}
                                     placeholder="휴대폰 번호 (- 제외)"
                                     value={formData.phone}
-                                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                                    onChange={(e) => updatePhone(e.target.value)}
+                                    autoFocus
                                 />
                             </div>
-                            <button className="verify-btn" onClick={startTimer}>
-                                {status.phoneRequested ? '재전송' : '인증'}
+                            <button
+                                type="button"
+                                className="verify-btn"
+                                onClick={handleRequestPhoneVerification}
+                                disabled={status.phoneRequesting}
+                            >
+                                {status.phoneRequesting ? '전송 중...' : status.phoneRequested ? '재전송' : '인증'}
                             </button>
                         </div>
+                        {formData.phone && !isPhoneValid(formData.phone) && (
+                            <p className="validation-msg error">휴대폰 번호 10~11자리를 입력해 주세요.</p>
+                        )}
                         {status.phoneRequested && (
-                            <div className="input-container">
-                                <input
-                                    type="number"
-                                    className="wizard-input"
-                                    placeholder="인증번호 6자리"
-                                    value={formData.verificationCode}
-                                    onChange={(e) => setFormData({ ...formData, verificationCode: e.target.value })}
-                                />
-                                <div className="timer-wrap">{formatTimer(status.timer)}</div>
-                            </div>
+                            <>
+                                <div className="verify-row">
+                                    <div className="input-container verification-input-container" style={{ flex: 1, marginBottom: 0 }}>
+                                        <input
+                                            type="tel"
+                                            className={`wizard-input ${status.phoneMessageType === 'error' && formData.verificationCode ? 'error' : ''}`}
+                                            placeholder="인증번호 6자리"
+                                            value={formData.verificationCode}
+                                            onChange={(e) => updateVerificationCode(e.target.value)}
+                                        />
+                                        {!status.phoneVerified && <div className="timer-wrap">{formatTimer(status.timer)}</div>}
+                                    </div>
+                                    <button
+                                        type="button"
+                                        className="verify-btn"
+                                        onClick={handleVerifyPhoneCode}
+                                        disabled={status.phoneVerifying || status.phoneVerified}
+                                    >
+                                        {status.phoneVerified ? '완료' : status.phoneVerifying ? '확인 중...' : '확인'}
+                                    </button>
+                                </div>
+                            </>
+                        )}
+                        {status.phoneMessage && (
+                            <p className={`validation-msg ${status.phoneMessageType === 'error' ? 'error' : status.phoneMessageType === 'success' ? 'success' : 'info'}`}>
+                                {status.phoneMessage}
+                            </p>
+                        )}
+                        {status.phoneVerified && (
+                            <p className="validation-msg success">
+                                인증된 번호로 가입이 진행됩니다.
+                            </p>
+                        )}
+                        {status.phoneRequested && !status.phoneVerified && status.timer <= 0 && (
+                            <p className="validation-msg error">
+                                인증 시간이 만료되었습니다. 인증번호를 다시 요청해 주세요.
+                            </p>
                         )}
                     </>
                 )}

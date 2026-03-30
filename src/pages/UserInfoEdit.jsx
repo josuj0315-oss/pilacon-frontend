@@ -4,13 +4,15 @@ import { usePilaCon } from '../store/pilaconStore';
 import { ArrowLeft, Camera, User, Mail } from 'lucide-react';
 
 export default function UserInfoEdit() {
-  const { user, updateUser, uploadFile, checkNickname } = usePilaCon();
+  const { user, updateUser, uploadFile, checkNickname, showToast } = usePilaCon();
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isEditable, setIsEditable] = useState(false);
   const [isNicknameChecked, setIsNicknameChecked] = useState(true); // Initial state is checked because it's current nickname
   const [checkingNickname, setCheckingNickname] = useState(false);
+  const [nicknameError, setNicknameError] = useState('');
+  const nicknameInputRef = useRef(null);
 
   const [formData, setFormData] = useState({
     nickname: user?.nickname || '',
@@ -42,7 +44,7 @@ export default function UserInfoEdit() {
         setFormData(prev => ({ ...prev, profileImage: res.url }));
         setPreviewImage(res.url);
       } else {
-        alert(res.error);
+        showToast(res.error, 'error');
       }
     }
   };
@@ -60,10 +62,11 @@ export default function UserInfoEdit() {
     setCheckingNickname(false);
 
     if (res.available) {
-      alert('사용 가능한 닉네임입니다.');
+      showToast('사용 가능한 닉네임입니다.', 'success');
       setIsNicknameChecked(true);
+      setNicknameError('');
     } else {
-      alert('이미 사용 중인 닉네임입니다.');
+      setNicknameError('이미 사용 중인 닉네임입니다.');
       setIsNicknameChecked(false);
     }
   };
@@ -72,15 +75,17 @@ export default function UserInfoEdit() {
     e.preventDefault();
     if (isUploading) return;
     if (!isNicknameChecked && formData.nickname !== user?.nickname) {
-      alert('닉네임 중복확인을 해주세요.');
+      setNicknameError('닉네임 중복확인을 해주세요.');
+      showToast('닉네임 중복확인을 해주세요.', 'error');
+      nicknameInputRef.current?.focus();
       return;
     }
     const res = await updateUser(formData);
     if (res.ok) {
-      alert('프로필 정보가 수정되었습니다.');
+      showToast('프로필 정보가 수정되었습니다.');
       navigate('/mypage');
     } else {
-      alert(res.error);
+      showToast(res.error, 'error');
     }
   };
 
@@ -135,10 +140,12 @@ export default function UserInfoEdit() {
                   type="text"
                   className="edit-input"
                   placeholder="닉네임을 입력하세요"
+                  ref={nicknameInputRef}
                   value={formData.nickname}
                   onChange={(e) => {
                     setFormData({ ...formData, nickname: e.target.value });
                     setIsNicknameChecked(false);
+                    setNicknameError('');
                   }}
                   disabled={!isEditable}
                   required
@@ -158,6 +165,7 @@ export default function UserInfoEdit() {
                   </button>
                 )}
               </div>
+              {nicknameError && <p className="field-error">{nicknameError}</p>}
             </div>
           </div>
 
@@ -406,6 +414,20 @@ export default function UserInfoEdit() {
         }
         .save-btn:active:not(:disabled) {
           transform: scale(0.98);
+        }
+        .field-error {
+          color: #ef4444;
+          font-size: 12px;
+          font-weight: 600;
+          margin-top: 6px;
+          margin-left: 4px;
+          animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+        }
+        @keyframes shake {
+          10%, 90% { transform: translate3d(-1px, 0, 0); }
+          20%, 80% { transform: translate3d(2px, 0, 0); }
+          30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+          40%, 60% { transform: translate3d(4px, 0, 0); }
         }
       `}</style>
     </div>

@@ -1,17 +1,34 @@
-import React, { useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import InstructorProfileList from "./InstructorProfileList";
 import InstructorProfileEdit from "./InstructorProfileEdit";
 import InstructorProfileView from "./InstructorProfileView";
 import { usePilaCon } from "../store/pilaconStore";
+import { useBodyScrollLock } from "../utils/hooks";
 
 export default function InstructorProfileManager() {
-    const { profiles, deleteProfile, setPrimaryProfile, saveProfile } = usePilaCon();
     const [searchParams] = useSearchParams();
+    const navigate = useNavigate();
+    const { profiles, deleteProfile, setPrimaryProfile, saveProfile, applyToJob, jobs, confirm, showToast } = usePilaCon();
+    
     const initialMode = searchParams.get("mode");
+    const fromJobId = searchParams.get("fromJobId");
+    const jobType = searchParams.get("jobType"); // 'sub' or 'regular'
+
     const [view, setView] = useState("list"); // list | detail | edit
-    const [activeTab, setActiveTab] = useState("sub"); // sub | regular
+    const [activeTab, setActiveTab] = useState(jobType || "sub"); // sub | regular
     const [viewingProfileId, setViewingProfileId] = useState(null);
+    const [showApplyPromotion, setShowApplyPromotion] = useState(false);
+    const [savedProfileId, setSavedProfileId] = useState(null);
+
+    useBodyScrollLock(showApplyPromotion);
+
+    // 공고 지원에서 넘어온 경우 바로 작성 모드로 진입
+    useEffect(() => {
+        if (fromJobId && initialMode === "new" && jobType) {
+            handleCreateProfile(jobType);
+        }
+    }, [fromJobId, initialMode, jobType]);
 
     const handleCreateProfile = (type) => {
         setViewingProfileId(`new_${type}`);
@@ -30,8 +47,10 @@ export default function InstructorProfileManager() {
     };
 
     const handleDeleteProfile = async (id) => {
-        if (window.confirm("프로필을 삭제하시겠습니까?")) {
+        const ok = await confirm("프로필 삭제", "프로필을 삭제하시겠습니까?", { type: 'danger' });
+        if (ok) {
             await deleteProfile(id);
+            showToast("프로필이 삭제되었습니다.");
             if (view === "detail") setView("list");
         }
     };
@@ -43,30 +62,63 @@ export default function InstructorProfileManager() {
     const handleSaveProfile = async (updatedProfile) => {
         const res = await saveProfile(updatedProfile);
         if (res.ok) {
-            // 저장 후 상세 페이지로 이동하거나 목록으로 이동
             setViewingProfileId(res.data.id);
-            setView("detail");
+            if (fromJobId) {
+                // 공고 지원 모맥에서 저장 성공 시, 지원 의사를 묻는 모달 노출
+                setSavedProfileId(res.data.id);
+                setShowApplyPromotion(true);
+            } else {
+                setView("detail");
+                showToast("프로필이 저장되었습니다.");
+            }
         } else {
-            alert(res.error);
+            showToast(res.error, "error");
         }
     };
+
+    const handleApplyWithProfile = async (profileId) => {
+        if (!fromJobId) return;
+        try {
+            const res = await applyToJob(fromJobId, profileId);
+            if (res.ok) {
+                showToast("지원 완료되었습니다!");
+                // 히스토리 핑퐁 방지를 위해 뒤로가기(navigate(-1)) 수행
+                // 이를 통해 현재 프로필 작성/상세 페이지가 히스토리에서 제거됨
+                navigate(-1);
+            } else {
+                showToast(res.message || "지원 중 오류가 발생했습니다.", "error");
+            }
+        } catch (err) {
+            console.error(err);
+            showToast("지원 중 오류가 발생했습니다.", "error");
+        }
+    };
+
+    let mainContent;
 
     if (view === "detail") {
         const profile = profiles.find(p => p.id === viewingProfileId);
         if (!profile) {
             setView("list");
-            return null;
+            mainContent = null;
+        } else {
+            mainContent = (
+                <InstructorProfileView
+                    profile={profile}
+                    fromJobId={fromJobId}
+                    onEdit={() => setView("edit")}
+                    onBack={() => {
+                        if (fromJobId) {
+                            navigate(-1);
+                        } else {
+                            setView("list");
+                        }
+                    }}
+                    onApply={() => handleApplyWithProfile(profile.id)}
+                />
+            );
         }
-        return (
-            <InstructorProfileView
-                profile={profile}
-                onEdit={() => setView("edit")}
-                onBack={() => setView("list")}
-            />
-        );
-    }
-
-    if (view === "edit") {
+    } else if (view === "edit") {
         let editingProfile;
         if (typeof viewingProfileId === 'string' && viewingProfileId.startsWith('new_')) {
             const type = viewingProfileId.split('_')[1];
@@ -90,34 +142,106 @@ export default function InstructorProfileManager() {
 
         if (!editingProfile) {
             setView("list");
-            return null;
+            mainContent = null;
+        } else {
+            mainContent = (
+                <InstructorProfileEdit
+                    profile={editingProfile}
+                    fromJobId={fromJobId}
+                    onSave={handleSaveProfile}
+                    onBack={() => {
+                        if (fromJobId && typeof viewingProfileId === 'string' && viewingProfileId.startsWith('new_')) {
+                            navigate(-1);
+                        } else if (typeof viewingProfileId === 'string' && viewingProfileId.startsWith('new_')) {
+                            setView("list");
+                        } else {
+                            setView("detail");
+                        }
+                    }}
+                />
+            );
         }
-
-        return (
-            <InstructorProfileEdit
-                profile={editingProfile}
-                onSave={handleSaveProfile}
-                onBack={() => {
-                    if (typeof viewingProfileId === 'string' && viewingProfileId.startsWith('new_')) {
-                        setView("list");
-                    } else {
-                        setView("detail");
-                    }
-                }}
+    } else {
+        mainContent = (
+            <InstructorProfileList
+                activeTab={activeTab}
+                setActiveTab={setActiveTab}
+                profiles={profiles.filter(p => p.type === activeTab)}
+                onCreate={handleCreateProfile}
+                onView={handleViewProfile}
+                onDelete={handleDeleteProfile}
+                onSetPrimary={handleSetPrimary}
+                initialMode={initialMode}
+                fromJobId={fromJobId}
             />
         );
     }
 
     return (
-        <InstructorProfileList
-            activeTab={activeTab}
-            setActiveTab={setActiveTab}
-            profiles={profiles.filter(p => p.type === activeTab)}
-            onCreate={handleCreateProfile}
-            onView={handleViewProfile}
-            onDelete={handleDeleteProfile}
-            onSetPrimary={handleSetPrimary}
-            initialMode={initialMode}
-        />
+        <>
+            {mainContent}
+
+            {/* 지원 확인 모달 */}
+            {showApplyPromotion && (
+                <div className="modal-overlay" style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }} onClick={(e) => {
+                    setShowApplyPromotion(false);
+                    setView("detail");
+                }}>
+                    <div className="modal slide-up" onClick={(e) => e.stopPropagation()} style={{ 
+                        height: "auto", 
+                        minHeight: "340px", 
+                        borderRadius: "32px", 
+                        width: "100%", 
+                        maxWidth: "560px",
+                        marginTop: "15vh"
+                    }}>
+                        <div className="modal-content" style={{ textAlign: "center", paddingTop: "40px", paddingBottom: "20px" }}>
+                            <div style={{ fontSize: "48px", marginBottom: "20px" }}>🎉</div>
+                            <h2 style={{ fontSize: "22px", fontWeight: "900", marginBottom: "12px", color: "#1e293b" }}>
+                                프로필 작성이 완료되었습니다!
+                            </h2>
+                            <p style={{ color: "#64748b", marginBottom: "32px", fontSize: "15px", lineHeight: "1.6", fontWeight: "600" }}>
+                                이제 이 프로필로 해당 공고에<br />바로 지원하실 수 있습니다. 지금 지원할까요?
+                            </p>
+                            
+                            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                                <button
+                                    className="apply-btn"
+                                    onClick={() => handleApplyWithProfile(savedProfileId)}
+                                    style={{ 
+                                        height: "58px", 
+                                        borderRadius: "18px", 
+                                        fontSize: "16px", 
+                                        fontWeight: "800",
+                                        background: "#5b5ff5",
+                                        boxShadow: "0 10px 20px rgba(91, 95, 245, 0.2)"
+                                    }}
+                                >
+                                    이 프로필로 바로 지원하기
+                                </button>
+                                <button
+                                    style={{
+                                        width: "100%",
+                                        height: "50px",
+                                        background: "none",
+                                        border: "none",
+                                        color: "#94a3b8",
+                                        fontWeight: "700",
+                                        fontSize: "14px",
+                                        cursor: "pointer"
+                                    }}
+                                    onClick={() => {
+                                        setShowApplyPromotion(false);
+                                        setView("detail");
+                                    }}
+                                >
+                                    나중에 할게요
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </>
     );
 }

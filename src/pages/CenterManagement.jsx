@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ICONS } from '../constants/icons';
+import { usePilaCon } from '../store/pilaconStore';
 import { fetchCenters, createCenter, updateCenter, deleteCenter } from '../api/client';
 import { MapPin, Phone, Dumbbell, ShieldCheck, MoreVertical, Plus, Trash2, Edit2 } from 'lucide-react';
 import RegionFilterSheet from '../components/RegionFilterSheet';
@@ -9,13 +10,12 @@ const EQUIPMENT_OPTIONS = ["리포머", "바렐", "체어", "캐딜락", "스프
 
 export default function CenterManagement() {
   const navigate = useNavigate();
+  const { showToast, confirm } = usePilaCon();
   const [centers, setCenters] = useState([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState('list'); // 'list' | 'form'
   const [editingCenter, setEditingCenter] = useState(null);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [centerToDelete, setCenterToDelete] = useState(null);
-  const [toast, setToast] = useState(null);
 
   const loadCenters = async () => {
     try {
@@ -32,11 +32,6 @@ export default function CenterManagement() {
   useEffect(() => {
     loadCenters();
   }, []);
-
-  const showToast = (message) => {
-    setToast(message);
-    setTimeout(() => setToast(null), 3000);
-  };
 
   const handleAddClick = () => {
     setEditingCenter({
@@ -56,22 +51,16 @@ export default function CenterManagement() {
     setView('form');
   };
 
-  const handleDeleteClick = (center) => {
-    setCenterToDelete(center);
-    setShowDeleteModal(true);
-  };
+  const handleDeleteClick = async (center) => {
+    const ok = await confirm('센터 삭제', '정말로 이 센터를 삭제하시겠습니까?', { type: 'danger' });
+    if (!ok) return;
 
-  const confirmDelete = async () => {
-    if (!centerToDelete) return;
     try {
-      await deleteCenter(centerToDelete.id);
+      await deleteCenter(center.id);
       showToast('센터가 삭제되었습니다.');
       loadCenters();
     } catch (error) {
-      alert('삭제 실패: ' + error.message);
-    } finally {
-      setShowDeleteModal(false);
-      setCenterToDelete(null);
+      showToast('삭제 실패: ' + error.message, 'error');
     }
   };
 
@@ -86,7 +75,7 @@ export default function CenterManagement() {
       setView('list');
       loadCenters();
     } catch (error) {
-      alert('저장 실패: ' + error.message);
+      showToast('저장 실패: ' + error.message, 'error');
     }
   };
 
@@ -96,7 +85,6 @@ export default function CenterManagement() {
         initialData={editingCenter}
         onSave={handleSave}
         onCancel={() => setView('list')}
-        showToast={showToast}
       />
     );
   }
@@ -184,23 +172,6 @@ export default function CenterManagement() {
           </div>
         )}
       </main>
-
-      {/* Delete Modal */}
-      {showDeleteModal && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <h3 className="modal-title">센터 삭제</h3>
-            <p className="modal-desc">정말로 이 센터를 삭제하시겠습니까?</p>
-            <div className="modal-btns">
-              <button className="cancel-btn" onClick={() => setShowDeleteModal(false)}>취소</button>
-              <button className="confirm-btn" onClick={confirmDelete}>삭제</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Toast */}
-      {toast && <div className="toast">{toast}</div>}
 
       <style>{`
         .center-mgmt-page {
@@ -447,7 +418,8 @@ export default function CenterManagement() {
   );
 }
 
-function CenterForm({ initialData, onSave, onCancel, showToast }) {
+function CenterForm({ initialData, onSave, onCancel }) {
+  const { showToast } = usePilaCon();
   const [formData, setFormData] = useState({
     ...initialData,
     equipment: Array.isArray(initialData.equipment)
@@ -460,7 +432,7 @@ function CenterForm({ initialData, onSave, onCancel, showToast }) {
     e.preventDefault();
     if (!formData.name.trim()) return;
     if (!formData.address) {
-      alert('센터 주소를 상세 지역까지 선택해주세요.');
+      showToast('센터 주소를 상세 지역까지 선택해주세요.', 'error');
       return;
     }
     onSave(formData);
@@ -656,7 +628,7 @@ function CenterForm({ initialData, onSave, onCancel, showToast }) {
           min-height: 100vh;
           background: var(--bg);
           color: var(--text);
-          font-family: system-ui, -apple-system, sans-serif;
+          font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
         }
 
         .mgmt-header {

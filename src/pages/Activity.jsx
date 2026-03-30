@@ -27,7 +27,7 @@ export default function Activity() {
   const [selectedApplication, setSelectedApplication] = useState(null);
   const [selectedJob, setSelectedJob] = useState(null);
 
-  const { appliedList, myJobs, jobs, createChatRoom, closeJob } = usePilaCon();
+  const { appliedList, myJobs, jobs, createChatRoom, closeJob, confirm, showToast } = usePilaCon();
 
   // ✅ 초기 진입 시 데이터 복구 (새로고침 대응)
   useEffect(() => {
@@ -90,14 +90,14 @@ export default function Activity() {
     if (res.ok) {
       navigate(`/chat/${res.data.id}`);
     } else {
-      alert("채팅방을 생성할 수 없습니다.");
+      showToast("채팅방을 생성할 수 없습니다.", "error");
     }
   };
 
   // ✅ 공고 원문 보기 클릭 시
   const handleGoToJobDetail = (application) => {
     if (!application?.job) {
-      alert("연결된 공고를 찾을 수 없습니다.");
+      showToast("연결된 공고를 찾을 수 없습니다.", "error");
       return;
     }
     navigate(`/jobs/${application.job.id}`);
@@ -185,13 +185,14 @@ export default function Activity() {
                   onAction={() => navigate(`/activity/applicants/${post.id}`)}
                   onSecondaryAction={async () => {
                     if (post.status === 'CLOSED') {
-                      alert("이미 마감된 공고입니다.");
+                      showToast("이미 마감된 공고입니다.", "info");
                       return;
                     }
-                    if (window.confirm("공고를 마감하시겠습니까? 마감 후에는 지원자를 새로 받을 수 없습니다.")) {
+                    const ok = await confirm("공고 마감", "공고를 마감하시겠습니까? 마감 후에는 지원자를 새로 받을 수 없습니다.", { type: 'danger' });
+                    if (ok) {
                       const res = await closeJob(post.id);
-                      if (res.ok) alert("마감 처리되었습니다.");
-                      else alert("마감 처리에 실패했습니다.");
+                      if (res.ok) showToast("마감 처리되었습니다.");
+                      else showToast("마감 처리에 실패했습니다.", "error");
                     }
                   }}
                 />

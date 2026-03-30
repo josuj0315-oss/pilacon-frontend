@@ -25,6 +25,7 @@ import UserInfoEdit from "./pages/UserInfoEdit";
 import SignupWizard from "./pages/SignupWizard";
 import CenterManagement from "./pages/CenterManagement";
 import Onboarding from "./components/Onboarding";
+import GlobalUI from "./components/GlobalUI";
 import { useState } from "react";
 
 export default function App() {
@@ -62,6 +63,7 @@ export default function App() {
 
   return (
     <div id="appScreen">
+      <GlobalUI />
       <Routes>
         <Route element={<AppLayout />}>
           <Route path="/" element={<Home />} />

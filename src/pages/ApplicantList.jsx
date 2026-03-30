@@ -17,7 +17,7 @@ const STATUS_MAP = {
 export default function ApplicantList() {
   const { jobId } = useParams();
   const navigate = useNavigate();
-  const { jobs, getApplicantsByJobId, createChatRoom, markApplicationAsViewed } = usePilaCon();
+  const { jobs, getApplicantsByJobId, createChatRoom, markApplicationAsViewed, showToast } = usePilaCon();
 
   const [applicants, setApplicants] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -95,7 +95,7 @@ export default function ApplicantList() {
     if (res.ok) {
       navigate(`/chat/${res.data.id}`);
     } else {
-      alert("채팅방을 생성할 수 없습니다.");
+      showToast("채팅방을 생성할 수 없습니다.", "error");
     }
   };
 
@@ -251,7 +251,7 @@ export default function ApplicantList() {
                         <button className="btn-primary-chat" onClick={() => handleGoToChat(app)} disabled={app.status === 'canceled'}>
                           <ICONS.chat size={18} /> 채팅하기
                         </button>
-                        <button className="btn-secondary-reject" onClick={() => alert("보류 처리되었습니다.")} disabled={app.status === 'canceled'}>보류</button>
+                        <button className="btn-secondary-reject" onClick={() => showToast("보류 처리되었습니다.", "info")} disabled={app.status === 'canceled'}>보류</button>
                       </div>
                     </div>
                   )}

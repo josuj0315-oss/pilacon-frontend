@@ -42,11 +42,16 @@ const LS_KEY = "pilacon:draft:job";
 
 export default function Write() {
   const navigate = useNavigate();
-  const { createJob, logout } = usePilaCon();
+  const { createJob, logout, confirm, showToast } = usePilaCon();
   const [savedCenters, setSavedCenters] = useState([]);
   const [loadingCenters, setLoadingCenters] = useState(false);
   const startDateRef = React.useRef(null);
   const endDateRef = React.useRef(null);
+  const titleRef = React.useRef(null);
+  const payRef = React.useRef(null);
+  const regionRef = React.useRef(null);
+  
+  const [errors, setErrors] = useState({});
   const [showAddressSheet, setShowAddressSheet] = useState(false);
   const today = new Date();
   const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
@@ -110,7 +115,7 @@ export default function Write() {
       
       if (!token || token === 'null' || token === 'undefined') {
         console.warn("No token found, skipping center fetch");
-        alert("인증 정보가 없습니다. 다시 로그인해주세요.");
+        showToast("인증 정보가 없습니다. 다시 로그인해주세요.", "error");
         logout();
         navigate('/login');
         return;
@@ -133,7 +138,7 @@ export default function Write() {
       } catch (e) {
         console.error("Failed to load centers", e);
         if (e.message.includes('401') || e.message.includes('Unauthorized')) {
-          alert("세션이 만료되었습니다. 다시 로그인해주세요.");
+          showToast("세션이 만료되었습니다. 다시 로그인해주세요.", "error");
           logout();
           navigate('/login');
         }
@@ -185,7 +190,7 @@ export default function Write() {
   // ✅ 임시저장 기능
   const handleSaveDraft = () => {
     localStorage.setItem(LS_KEY, JSON.stringify(newPost));
-    alert("현재 작성 내용이 임시저장되었습니다.");
+    showToast("작성 내용이 임시저장되었습니다.", "success");
   };
 
   // ✅ 센터 선택 시 로직
@@ -238,16 +243,26 @@ export default function Write() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!newPost.title.trim()) {
-      alert("공고 제목을 입력해주세요.");
+    const newErrors = {};
+    if (!newPost.title.trim()) newErrors.title = "공고 제목을 입력해주세요.";
+    if (!newPost.pay) newErrors.pay = "급여를 입력해주세요.";
+    if (!newPost.location) newErrors.location = "근무 지역을 선택해주세요.";
+    if (!newPost.workDate) newErrors.workDate = "날짜를 선택해주세요.";
+    if (newPost.type !== 'regular' && !newPost.isToday && !newPost.workEndDate) newErrors.workEndDate = "종료 날짜를 선택해주세요.";
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      showToast("입력되지 않은 필수 항목이 있습니다.", "error");
+      
+      // Focus first error
+      if (newErrors.title) titleRef.current?.focus();
+      else if (newErrors.pay) payRef.current?.focus();
+      else if (newErrors.workDate) startDateRef.current?.focus();
+      else if (newErrors.workEndDate) endDateRef.current?.focus();
       return;
     }
 
     const payNumber = Number(String(newPost.pay ?? "").replace(/\D/g, ""));
-    if (!payNumber) {
-      alert("급여를 입력해주세요.");
-      return;
-    }
 
     const finalCategory = CATEGORY_OPTIONS.includes(newPost.category)
       ? newPost.category
@@ -291,16 +306,16 @@ export default function Write() {
 
     if (result.ok) {
       localStorage.removeItem(LS_KEY);
-      alert("공고가 등록됐어!");
+      showToast("공고가 등록되었습니다!", "success");
       navigate("/");
     } else {
       if (result.error?.response?.status === 401) {
-        alert("세션이 만료되었습니다. 다시 로그인해주세요.");
+        showToast("세션이 만료되었습니다. 다시 로그인해주세요.", "error");
         logout();
         navigate('/login');
         return;
       }
-      alert("공고 등록에 실패했습니다: " + (result.error?.response?.data?.message || result.error?.message || "알 수 없는 오류"));
+      showToast("공고 등록에 실패했습니다: " + (result.error?.response?.data?.message || result.error?.message || "알 수 없는 오류"), "error");
     }
   };
 
@@ -367,7 +382,7 @@ export default function Write() {
   // ✅ AI 자동 채우기 핸들러
   const handleAiAutoFill = async () => {
     if (!aiInput.trim()) {
-      alert("분석할 공고 내용을 입력해주세요.");
+      showToast("분석할 공고 내용을 입력해주세요.", "info");
       return;
     }
 
@@ -380,7 +395,8 @@ export default function Write() {
         // 상세 내용 덮어쓰기 방지 및 병합 로직
         let finalDescription = result.description || "";
         if (newPost.description.trim()) {
-          if (window.confirm("이미 입력된 상세 내용이 있습니다. AI가 분석한 내용으로 교체할까요?\n(취소 시 기존 내용 뒤에 추가됩니다)")) {
+          const ok = await confirm("내용 덮어쓰기", "이미 입력된 상세 내용이 있습니다. AI가 분석한 내용으로 교체할까요?\n(취소 시 기존 내용 뒤에 추가됩니다)", { isDanger: true });
+          if (ok) {
             finalDescription = result.description;
           } else {
             finalDescription = `${newPost.description}\n\n[AI 추가]\n${result.description}`;
@@ -445,7 +461,7 @@ export default function Write() {
       }
     } catch (e) {
       console.error(e);
-      alert("AI 분석 중 오류가 발생했습니다: " + e.message);
+      showToast("AI 분석 중 오류가 발생했습니다.", "error");
       setAiMessage("분석 실패. 다시 시도해주세요.");
     } finally {
       setIsAiLoading(false);
@@ -573,12 +589,17 @@ export default function Write() {
               <div className="field">
                 <label className="label">공고 제목 <span className="required">*</span></label>
                 <input
+                  ref={titleRef}
                   type="text"
                   placeholder="예: XX필라테스 내일 대강 급하게 구합니다"
-                  className="input"
+                  className={`input ${errors.title ? 'error' : ''}`}
                   value={newPost.title}
-                  onChange={(e) => setNewPost({ ...newPost, title: e.target.value })}
+                  onChange={(e) => {
+                    setNewPost({ ...newPost, title: e.target.value });
+                    if (errors.title) setErrors(prev => ({ ...prev, title: '' }));
+                  }}
                 />
+                {errors.title && <p className="field-error">{errors.title}</p>}
               </div>
             </div>
 
@@ -721,7 +742,8 @@ export default function Write() {
               <div className="field">
                 <label className="label">급여 <span className="required">*</span></label>
                 <input
-                  className="input"
+                  ref={payRef}
+                  className={`input ${errors.pay ? 'error' : ''}`}
                   type="text"
                   inputMode="numeric"
                   placeholder="예: 30000"
@@ -729,8 +751,10 @@ export default function Write() {
                   onChange={(e) => {
                     const onlyNumber = e.target.value.replace(/\D/g, "");
                     setNewPost({ ...newPost, pay: onlyNumber });
+                    if (errors.pay) setErrors(prev => ({ ...prev, pay: '' }));
                   }}
                 />
+                {errors.pay && <p className="field-error">{errors.pay}</p>}
               </div>
 
               <div className="grid2">

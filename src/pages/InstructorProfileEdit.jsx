@@ -2,10 +2,11 @@ import React, { useState, useRef } from "react";
 import { ArrowLeft, FileText, MessageSquare, Link, Star, Image as ImageIcon, Loader2, Paperclip } from "lucide-react";
 import { usePilaCon } from "../store/pilaconStore";
 
-export default function InstructorProfileEdit({ profile, onSave, onBack }) {
-    const { uploadFile, uploadResume } = usePilaCon();
+export default function InstructorProfileEdit({ profile, onSave, onBack, fromJobId }) {
+    const { uploadFile, uploadResume, showToast } = usePilaCon();
     const [formData, setFormData] = useState({ ...profile });
     const [uploading, setUploading] = useState({}); // { fieldName: boolean }
+    const [saving, setSaving] = useState(false);
 
     const fileInputRefs = useRef({});
 
@@ -32,7 +33,7 @@ export default function InstructorProfileEdit({ profile, onSave, onBack }) {
             const failures = results.filter(res => !res.ok);
             if (failures.length > 0) {
                 const headError = failures[0].error || '서버 오류';
-                alert(headError);
+                showToast(headError, "error");
             }
 
             const successfulUrls = results
@@ -49,7 +50,7 @@ export default function InstructorProfileEdit({ profile, onSave, onBack }) {
             }
         } catch (error) {
             console.error("Critical upload error:", error);
-            alert("파일 업로드 중 치명적인 오류가 발생했습니다.");
+            showToast("파일 업로드 중 오류가 발생했습니다.", "error");
         } finally {
             setUploading(prev => ({ ...prev, [field]: false }));
         }
@@ -98,16 +99,27 @@ export default function InstructorProfileEdit({ profile, onSave, onBack }) {
         );
     };
 
-    const handleSave = (e) => {
+    const handleSave = async (e) => {
         e.preventDefault();
+        if (saving) return;
+
         const dataToSave = { ...formData };
         if (dataToSave.type === "sub" && !dataToSave.title) {
             dataToSave.title = "대타·급구 프로필";
         }
-        onSave({
-            ...dataToSave,
-            updatedAt: new Date().toISOString()
-        });
+
+        setSaving(true);
+        try {
+            await onSave({
+                ...dataToSave,
+                updatedAt: new Date().toISOString()
+            });
+        } catch (err) {
+            console.error("Save error:", err);
+            showToast("저장 중 오류가 발생했습니다.", "error");
+        } finally {
+            setSaving(false);
+        }
     };
 
     return (
@@ -324,8 +336,12 @@ export default function InstructorProfileEdit({ profile, onSave, onBack }) {
                     </section >
 
                     <div className="fixed-bottom-cta">
-                        <button type="submit" className="save-btn" disabled={Object.values(uploading).some(Boolean)}>
-                            {Object.values(uploading).some(Boolean) ? "업로드 중..." : (formData.type === "sub" ? "저장하기" : "저장하기")}
+                        <button type="submit" className="save-btn" disabled={saving || Object.values(uploading).some(Boolean)}>
+                            {saving 
+                                ? "저장 중..." 
+                                : Object.values(uploading).some(Boolean) 
+                                    ? "업로드 중..." 
+                                    : "저장하기"}
                         </button>
                     </div>
                 </form >

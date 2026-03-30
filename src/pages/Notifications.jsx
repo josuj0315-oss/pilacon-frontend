@@ -15,7 +15,9 @@ export default function Notifications() {
         getNotifications,
         markNotificationAsRead,
         markAllNotificationsAsRead,
-        unreadCount
+        unreadCount,
+        showToast,
+        confirm
     } = usePilaCon();
 
     const [list, setList] = useState([]);
@@ -62,9 +64,11 @@ export default function Notifications() {
     };
 
     const handleReadAll = async () => {
-        if (window.confirm('모든 알림을 읽음 처리하시겠습니까?')) {
+        const ok = await confirm('알림 전체 읽음', '모든 알림을 읽음 처리하시겠습니까?');
+        if (ok) {
             await markAllNotificationsAsRead();
             setList(prev => prev.map(n => ({ ...n, isRead: true })));
+            showToast("모든 알림을 읽음 처리했습니다.", "success");
         }
     };
 

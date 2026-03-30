@@ -1,7 +1,7 @@
 import React from "react";
 import { ArrowLeft, FileText, MessageSquare, Link, Star, Image as ImageIcon, Download, ExternalLink } from "lucide-react";
 
-export default function InstructorProfileView({ profile, onEdit, onBack }) {
+export default function InstructorProfileView({ profile, onEdit, onBack, fromJobId, onApply }) {
     const renderFilePreviews = (urlStr) => {
         const urls = (urlStr || "").split(",").filter(Boolean);
         if (urls.length === 0) return <p className="empty-text">첨부된 파일이 없습니다.</p>;
@@ -119,7 +119,11 @@ export default function InstructorProfileView({ profile, onEdit, onBack }) {
             </main>
 
             <div className="fixed-bottom-cta">
-                <button className="edit-btn" onClick={onEdit}>프로필 수정하기</button>
+                {fromJobId ? (
+                    <button className="apply-btn-primary" onClick={onApply}>이 프로필로 지원하기</button>
+                ) : (
+                    <button className="edit-btn" onClick={onEdit}>프로필 수정하기</button>
+                )}
             </div>
 
             <style>{`
@@ -340,6 +344,22 @@ export default function InstructorProfileView({ profile, onEdit, onBack }) {
                     font-weight: 800;
                     box-shadow: 0 10px 20px rgba(0,0,0,0.1);
                     cursor: pointer;
+                }
+                .apply-btn-primary {
+                    width: 100%;
+                    height: 56px;
+                    border-radius: 18px;
+                    border: none;
+                    background: #5b5ff5;
+                    color: #fff;
+                    font-size: 16px;
+                    font-weight: 800;
+                    box-shadow: 0 10px 20px rgba(91, 95, 245, 0.2);
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                }
+                .apply-btn-primary:active {
+                    transform: scale(0.98);
                 }
             `}</style>
         </div>

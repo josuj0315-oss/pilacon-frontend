@@ -6,7 +6,7 @@ import { ICONS } from "../constants/icons";
 export default function ChatRoom() {
   const navigate = useNavigate();
   const { id } = useParams();
-  const { getChatMessages, sendChatMessage, user, getChatRooms, uploadChatImage, acceptApplication } = usePilaCon();
+  const { getChatMessages, sendChatMessage, user, getChatRooms, uploadChatImage, acceptApplication, confirm, showToast } = usePilaCon();
   const roomId = Number(id);
 
   const [input, setInput] = useState("");
@@ -16,23 +16,25 @@ export default function ChatRoom() {
 
   const handleAccept = async () => {
     if (!roomInfo?.application?.id) return;
-    if (!window.confirm("정말로 채용을 확정하시겠습니까?")) return;
+    
+    const ok = await confirm("채용 확정", "정말로 채용을 확정하시겠습니까?");
+    if (!ok) return;
 
     try {
       setIsSending(true);
       const res = await acceptApplication(roomInfo.application.id);
       if (res.ok) {
-        alert("채용이 확정되었습니다.");
+        showToast("채용이 확정되었습니다.");
         // 방 정보 갱신
         const rooms = await getChatRooms();
         const currentRoom = rooms.find(r => r.id === roomId);
         setRoomInfo(currentRoom);
       } else {
-        alert(res.error || "채용 확정에 실패했습니다.");
+        showToast(res.error || "채용 확정에 실패했습니다.", "error");
       }
     } catch (e) {
       console.error(e);
-      alert("오류가 발생했습니다.");
+      showToast("오류가 발생했습니다.", "error");
     } finally {
       setIsSending(false);
     }
@@ -119,12 +121,12 @@ export default function ChatRoom() {
         const data = await getChatMessages(roomId);
         setMessages(data);
       } else {
-        alert("메시지 전송에 실패했습니다.");
+        showToast("메시지 전송에 실패했습니다.", "error");
         setInput(text); // 실패 시 입력값 복구
       }
     } catch (e) {
       console.error(e);
-      alert("전송 중 오류가 발생했습니다.");
+      showToast("전송 중 오류가 발생했습니다.", "error");
     } finally {
       setIsSending(false);
     }
@@ -141,7 +143,7 @@ export default function ChatRoom() {
       // 1. 이미지 업로드
       const uploadRes = await uploadChatImage(roomId, file);
       if (!uploadRes.ok) {
-        alert(uploadRes.error || "이미지 업로드에 실패했습니다.");
+        showToast(uploadRes.error || "이미지 업로드에 실패했습니다.", "error");
         setIsSending(false);
         return;
       }
@@ -154,11 +156,11 @@ export default function ChatRoom() {
         const data = await getChatMessages(roomId);
         setMessages(data);
       } else {
-        alert("이미지 전송에 실패했습니다.");
+        showToast("이미지 전송에 실패했습니다.", "error");
       }
     } catch (e) {
       console.error(e);
-      alert("이미지 전송 중 오류가 발생했습니다.");
+      showToast("이미지 전송 중 오류가 발생했습니다.", "error");
     } finally {
       setIsSending(false);
       // input 초기화 (같은 파일 다시 선택 시 이벤트 발생을 위해)
@@ -182,7 +184,7 @@ export default function ChatRoom() {
         }, 2000);
       }
     } else {
-      alert("검색 결과가 없습니다.");
+      showToast("검색 결과가 없습니다.", "info");
     }
   };
 

@@ -4,7 +4,7 @@ import { getApplicationStatusLabel, usePilaCon } from '../store/pilaconStore';
 import "../components/modal.css";
 
 export default function AppliedDetail({ application, onBack, onChat, onGoToJob }) {
-  const { cancelApplication } = usePilaCon();
+  const { cancelApplication, showToast } = usePilaCon();
   const [isFolded, setIsFolded] = React.useState(false);
   const [showCancelModal, setShowCancelModal] = React.useState(false);
   const job = application.job;
@@ -187,7 +187,7 @@ export default function AppliedDetail({ application, onBack, onChat, onGoToJob }
             className={`cta-btn secondary ${application.status === 'canceled' ? 'is-disabled' : ''}`}
             onClick={() => {
               if (application.status === 'accepted') {
-                alert("채용확정된 지원서는 취소할 수 없습니다.");
+                showToast("채용확정된 지원서는 취소할 수 없습니다.", "error");
                 return;
               }
               if (application.status === 'canceled') return;
@@ -209,10 +209,10 @@ export default function AppliedDetail({ application, onBack, onChat, onGoToJob }
           onConfirm={async (reason, detail) => {
             const res = await cancelApplication(application.id, reason, detail);
             if (res.ok) {
-              alert("지원 취소가 완료되었습니다.");
+              showToast("지원 취소가 완료되었습니다.");
               setShowCancelModal(false);
             } else {
-              alert(res.error);
+              showToast(res.error || "취소 중 오류가 발생했습니다.", "error");
             }
           }}
         />
