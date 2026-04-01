@@ -6,6 +6,19 @@ import * as Sentry from "@sentry/react";
 Sentry.init({
   dsn: import.meta.env.VITE_SENTRY_DSN,
   tracesSampleRate: 1.0,
+  beforeSend(event, hint) {
+    // 400번대 에러(Client Error)는 Sentry에 보고하지 않음
+    const error = hint.originalException;
+    if (
+      error &&
+      error.response &&
+      error.response.status >= 400 &&
+      error.response.status < 500
+    ) {
+      return null;
+    }
+    return event;
+  },
 });
 
 import { BrowserRouter } from "react-router-dom";
