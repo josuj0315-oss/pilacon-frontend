@@ -163,6 +163,12 @@ export default function Login() {
                 {mode === 'login' ? '로그인' : '회원가입'}
             </button>
 
+            {mode === 'login' && (
+                <div className="form-signup-link">
+                    아직 회원이 아니신가요? <span onClick={() => navigate('/signup')}>회원가입</span>
+                </div>
+            )}
+
             <div className="back-link" onClick={() => {
                 setMode('choice');
                 setError('');

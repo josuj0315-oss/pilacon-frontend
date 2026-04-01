@@ -558,6 +558,42 @@ export function PilaConProvider({ children }) {
     }
   };
 
+  const requestEmailVerification = async (email) => {
+    try {
+      const res = await axios.post(`${API_BASE_URL}/auth/email/request`, { email });
+      return {
+        ok: true,
+        message: res.data?.message || '인증번호를 이메일로 전송했습니다.',
+        data: res.data,
+      };
+    } catch (error) {
+      console.error('Failed to request email verification:', error);
+      return {
+        ok: false,
+        error: error.response?.data?.message || '인증번호 전송에 실패했습니다.',
+      };
+    }
+  };
+
+  const verifyEmailCode = async (email, code) => {
+    try {
+      const res = await axios.post(`${API_BASE_URL}/auth/email/verify`, { email, code });
+      return {
+        ok: true,
+        verified: res.data?.verified ?? true,
+        verificationToken: res.data?.verificationToken ?? null,
+        message: res.data?.message || '이메일 인증이 완료되었습니다.',
+        data: res.data,
+      };
+    } catch (error) {
+      console.error('Failed to verify email code:', error);
+      return {
+        ok: false,
+        error: error.response?.data?.message || '인증번호 확인에 실패했습니다.',
+      };
+    }
+  };
+
   const uploadFile = async (file) => {
     if (!user) return { ok: false, error: 'Not logged in' };
     const formData = new FormData();
@@ -1107,6 +1143,8 @@ export function PilaConProvider({ children }) {
       checkUsername,
       requestPhoneVerification,
       verifyPhoneCode,
+      requestEmailVerification,
+      verifyEmailCode,
       uploadFile,
       uploadResume,
       uploadChatImage,
@@ -1146,7 +1184,7 @@ export function PilaConProvider({ children }) {
       showFullError,
       closeFullError,
     }),
-    [jobs, myJobs, appliedList, applications, refreshApplications, favorites, loading, isAuthLoading, user, profiles, notifications, unreadCount, unreadMessageCount, lastChatMessage, notificationSettings, recentlyViewedJobs, blockedUsers, toasts, globalModal, fullError, applyToJob, closeJob, createJob, deleteJob, deleteProfile, isFavorited, localLogin, loginWithToken, saveProfile, setPrimaryProfile, toggleFavorite, updateJob, updateUser, uploadChatImage, uploadFile, uploadResume]
+    [jobs, myJobs, appliedList, applications, refreshApplications, favorites, loading, isAuthLoading, user, profiles, notifications, unreadCount, unreadMessageCount, lastChatMessage, notificationSettings, recentlyViewedJobs, blockedUsers, toasts, globalModal, fullError, applyToJob, closeJob, createJob, deleteJob, deleteProfile, isFavorited, localLogin, loginWithToken, saveProfile, setPrimaryProfile, toggleFavorite, updateJob, updateUser, uploadChatImage, uploadFile, uploadResume, requestEmailVerification, verifyEmailCode]
   );
 
   return <PilaConContext.Provider value={value}>{children}</PilaConContext.Provider>;

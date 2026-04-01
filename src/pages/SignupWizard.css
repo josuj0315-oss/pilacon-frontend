@@ -118,6 +118,13 @@
     box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1);
 }
 
+.wizard-input.readonly {
+    background: #f1f5f9;
+    color: #94a3b8;
+    cursor: default;
+    border-color: #e2e8f0;
+}
+
 .clear-btn {
     position: absolute;
     right: 14px;

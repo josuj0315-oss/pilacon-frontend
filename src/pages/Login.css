@@ -183,6 +183,21 @@
   margin: 0;
 }
 
+.form-signup-link {
+  font-size: 14px;
+  color: #64748b;
+  margin-top: -8px;
+  margin-bottom: -4px;
+}
+
+.form-signup-link span {
+  color: #3b82f6;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: underline;
+  margin-left: 4px;
+}
+
 .back-link {
   font-size: 14px;
   color: #94a3b8;

@@ -6,6 +6,7 @@ import './SignupWizard.css';
 const STEPS = [
     { title: '아이디를 입력해 주세요', subtitle: '6~16자 영문 소문자, 숫자만 사용해 주세요.' },
     { title: '이메일을 입력해 주세요', subtitle: '' },
+    { title: '이메일을 인증해 주세요', subtitle: '' }, // Step 3
     { title: '비밀번호를 입력해 주세요', subtitle: '' },
     { title: '이름을 입력해 주세요', subtitle: '실명을 입력해 주세요.' },
     { title: '휴대폰 번호를 인증해 주세요', subtitle: '' },
@@ -14,7 +15,7 @@ const STEPS = [
 
 
 export default function SignupWizard() {
-    const { localSignup, checkUsername, requestPhoneVerification, verifyPhoneCode } = usePilaCon();
+    const { localSignup, checkUsername, requestPhoneVerification, verifyPhoneCode, requestEmailVerification, verifyEmailCode, showToast } = usePilaCon();
     const navigate = useNavigate();
     const [step, setStep] = useState(1);
     const [formData, setFormData] = useState({
@@ -25,7 +26,9 @@ export default function SignupWizard() {
         name: '',
         phone: '',
         verificationCode: '',
-        phoneVerificationToken: ''
+        phoneVerificationToken: '',
+        emailVerificationCode: '',
+        emailVerificationToken: ''
     });
 
     const [status, setStatus] = useState({
@@ -34,6 +37,13 @@ export default function SignupWizard() {
         emailValid: false,
         passwordValid: false,
         nameValid: false,
+        emailRequested: false,
+        emailVerified: false,
+        emailMessage: '',
+        emailMessageType: 'info',
+        emailRequesting: false,
+        emailVerifying: false,
+        emailTimer: 600, // 10 minutes
         phoneRequested: false,
         phoneVerified: false,
         phoneMessage: '',
@@ -51,6 +61,7 @@ export default function SignupWizard() {
     });
 
     const timerRef = useRef(null);
+    const emailTimerRef = useRef(null);
 
     const normalizePhone = (val) => val.replace(/\D/g, '').slice(0, 11);
     const isPhoneValid = (val) => /^01\d{8,9}$/.test(val);
@@ -110,6 +121,91 @@ export default function SignupWizard() {
         const nameRegex = /^[a-zA-Z가-힣]{2,12}$/;
         setStatus(s => ({ ...s, nameValid: nameRegex.test(formData.name) }));
     }, [formData.name]);
+    
+    // --- Email Verification Logic ---
+    const startEmailTimer = () => {
+        setStatus(s => ({ ...s, emailRequested: true, emailTimer: 600 }));
+        if (emailTimerRef.current) clearInterval(emailTimerRef.current);
+        emailTimerRef.current = setInterval(() => {
+            setStatus(s => {
+                if (s.emailTimer <= 0) {
+                    clearInterval(emailTimerRef.current);
+                    return s;
+                }
+                return { ...s, emailTimer: s.emailTimer - 1 };
+            });
+        }, 1000);
+    };
+
+    const handleRequestEmailVerification = async () => {
+        setStatus(prev => ({
+            ...prev,
+            emailRequesting: true,
+            emailMessage: '',
+            emailMessageType: 'info'
+        }));
+
+        const res = await requestEmailVerification(formData.email);
+
+        if (!res.ok) {
+            setStatus(prev => ({
+                ...prev,
+                emailRequesting: false,
+                emailMessage: res.error,
+                emailMessageType: 'error'
+            }));
+            return;
+        }
+
+        startEmailTimer();
+        setStatus(prev => ({
+            ...prev,
+            emailRequesting: false,
+            emailMessage: res.message,
+            emailMessageType: 'success'
+        }));
+    };
+
+    const handleVerifyEmailCode = async () => {
+        if (!status.emailRequested) {
+            setStatus(prev => ({ ...prev, emailMessage: '먼저 인증번호를 요청해 주세요.', emailMessageType: 'error' }));
+            return;
+        }
+        if (status.emailTimer <= 0) {
+            setStatus(prev => ({ ...prev, emailMessage: '인증 시간이 만료되었습니다. 다시 요청해 주세요.', emailMessageType: 'error' }));
+            return;
+        }
+
+        setStatus(prev => ({ ...prev, emailVerifying: true, emailMessage: '', emailMessageType: 'info' }));
+        const res = await verifyEmailCode(formData.email, formData.emailVerificationCode);
+
+        if (!res.ok || !res.verified) {
+            setStatus(prev => ({
+                ...prev,
+                emailVerifying: false,
+                emailMessage: res.error || '인증번호가 올바르지 않습니다.',
+                emailMessageType: 'error'
+            }));
+            return;
+        }
+
+        if (emailTimerRef.current) clearInterval(emailTimerRef.current);
+        setFormData(prev => ({ ...prev, emailVerificationToken: res.verificationToken }));
+        setStatus(prev => ({
+            ...prev,
+            emailVerifying: false,
+            emailVerified: true,
+            emailMessage: res.message,
+            emailMessageType: 'success'
+        }));
+    };
+
+    const updateEmailCode = (value) => {
+        setFormData(prev => ({
+            ...prev,
+            emailVerificationCode: value.replace(/\D/g, '').slice(0, 6)
+        }));
+    };
 
     // --- Phone Step Logic ---
     const startTimer = () => {
@@ -135,6 +231,7 @@ export default function SignupWizard() {
     useEffect(() => {
         return () => {
             if (timerRef.current) clearInterval(timerRef.current);
+            if (emailTimerRef.current) clearInterval(emailTimerRef.current);
         };
     }, []);
 
@@ -305,7 +402,7 @@ export default function SignupWizard() {
 
     // --- Navigation ---
     const handleNext = async () => {
-        if (step < 6) {
+        if (step < 7) {
             setStep(step + 1);
         } else {
             // Final Signup
@@ -315,6 +412,7 @@ export default function SignupWizard() {
                 nickname: formData.name, // Using name as nickname
                 name: formData.name,
                 email: formData.email,
+                emailVerificationToken: formData.emailVerificationToken || undefined,
                 phone: formData.phone,
                 phoneVerificationToken: formData.phoneVerificationToken || undefined,
                 marketingAgree: status.terms.marketing
@@ -350,10 +448,11 @@ export default function SignupWizard() {
         switch (step) {
             case 1: return status.id === 'success';
             case 2: return status.emailValid;
-            case 3: return status.passwordValid;
-            case 4: return status.nameValid;
-            case 5: return status.phoneVerified;
-            case 6: return status.terms.age15 && status.terms.service && status.terms.privacy;
+            case 3: return status.emailVerified;
+            case 4: return status.passwordValid;
+            case 5: return status.nameValid;
+            case 6: return status.phoneVerified;
+            case 7: return status.terms.age15 && status.terms.service && status.terms.privacy;
             default: return false;
         }
     };
@@ -370,7 +469,7 @@ export default function SignupWizard() {
                     </button>
                 </div>
                 <div className="progress-container">
-                    <div className="progress-bar" style={{ width: `${(step / 6) * 100}%` }}></div>
+                    <div className="progress-bar" style={{ width: `${(step / 7) * 100}%` }}></div>
                 </div>
             </header>
 
@@ -423,6 +522,57 @@ export default function SignupWizard() {
 
                 {step === 3 && (
                     <>
+                        <div className="verify-row">
+                            <div className="input-container" style={{ flex: 1, marginBottom: 0 }}>
+                                <input
+                                    type="email"
+                                    className="wizard-input readonly"
+                                    value={formData.email}
+                                    readOnly
+                                />
+                            </div>
+                            <button
+                                type="button"
+                                className="verify-btn"
+                                onClick={handleRequestEmailVerification}
+                                disabled={status.emailRequesting}
+                            >
+                                {status.emailRequesting ? '전송 중...' : status.emailRequested ? '재전송' : '인증 요청'}
+                            </button>
+                        </div>
+                        {status.emailRequested && (
+                            <div className="verify-row" style={{ marginTop: '12px' }}>
+                                <div className="input-container verification-input-container" style={{ flex: 1, marginBottom: 0 }}>
+                                    <input
+                                        type="tel"
+                                        className={`wizard-input ${status.emailMessageType === 'error' ? 'error' : ''}`}
+                                        placeholder="인증번호 6자리"
+                                        value={formData.emailVerificationCode}
+                                        onChange={(e) => updateEmailCode(e.target.value)}
+                                        autoFocus
+                                    />
+                                    {!status.emailVerified && <div className="timer-wrap">{formatTimer(status.emailTimer)}</div>}
+                                </div>
+                                <button
+                                    type="button"
+                                    className="verify-btn"
+                                    onClick={handleVerifyEmailCode}
+                                    disabled={status.emailVerifying || status.emailVerified}
+                                >
+                                    {status.emailVerified ? '완료' : status.emailVerifying ? '확인 중...' : '확인'}
+                                </button>
+                            </div>
+                        )}
+                        {status.emailMessage && (
+                            <p className={`validation-msg ${status.emailMessageType === 'error' ? 'error' : 'success'}`}>
+                                {status.emailMessage}
+                            </p>
+                        )}
+                    </>
+                )}
+
+                {step === 4 && (
+                    <>
                         <div className="input-container">
                             <input
                                 type="password"
@@ -457,7 +607,7 @@ export default function SignupWizard() {
                     </>
                 )}
 
-                {step === 4 && (
+                {step === 5 && (
                     <div className="input-container">
                         <div className="input-wrapper">
                             <input
@@ -478,7 +628,7 @@ export default function SignupWizard() {
                     </div>
                 )}
 
-                {step === 5 && (
+                {step === 6 && (
                     <>
                         <div className="verify-row">
                             <div className="input-container" style={{ flex: 1, marginBottom: 0 }}>
@@ -545,7 +695,7 @@ export default function SignupWizard() {
                     </>
                 )}
 
-                {step === 6 && (
+                {step === 7 && (
                     <div className="terms-list">
                         <div className={`terms-item all-agree ${status.terms.all ? 'checked' : ''}`} onClick={() => toggleTerm('all')}>
                             <div className="checkbox-circle">
@@ -603,7 +753,7 @@ export default function SignupWizard() {
                     disabled={!isStepValid()}
                     onClick={handleNext}
                 >
-                    {step === 6 ? '시작하기' : '다음'}
+                    {step === 7 ? '시작하기' : '다음'}
                 </button>
             </footer>
         </div>
