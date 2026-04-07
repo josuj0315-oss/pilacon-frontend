@@ -95,6 +95,15 @@
   gap: 12px;
 }
 
+.write-desktop-layout {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.write-side-summary {
+  display: none;
+}
+
 /* --- AI Section Refinement --- */
 .ai-section {
   padding: 24px;
@@ -613,6 +622,99 @@ input:checked+.slider:before {
   color: var(--sub);
   margin-top: 24px;
   margin-bottom: 8px;
+}
+
+@media (min-width: 1200px) {
+  .write-scroll-area {
+    padding-bottom: 24px;
+  }
+
+  .write-desktop-layout.desktop {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    gap: 16px;
+    align-items: start;
+  }
+
+  .write-desktop-layout.desktop .write-form {
+    max-width: none;
+    margin: 0;
+  }
+
+  .write-desktop-layout.desktop .write-side-summary {
+    display: block;
+    position: sticky;
+    top: 72px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 16px;
+  }
+
+  .write-side-summary h3 {
+    margin: 0 0 10px;
+    font-size: 16px;
+    font-weight: 900;
+    color: #0f172a;
+  }
+
+  .write-side-summary .summary-title {
+    font-size: 17px;
+    font-weight: 800;
+    color: #1e293b;
+    line-height: 1.4;
+    margin-bottom: 12px;
+  }
+
+  .write-side-summary .summary-list {
+    display: grid;
+    gap: 8px;
+  }
+
+  .write-side-summary .summary-list > div {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    border: 1px solid #eef2f7;
+    border-radius: 10px;
+    padding: 10px;
+    background: #f8fafc;
+  }
+
+  .write-side-summary .summary-list span {
+    font-size: 12px;
+    color: #64748b;
+    font-weight: 700;
+  }
+
+  .write-side-summary .summary-list strong {
+    font-size: 12px;
+    color: #0f172a;
+    font-weight: 800;
+    text-align: right;
+  }
+
+  .write-side-summary .summary-note {
+    margin: 12px 0 0;
+    font-size: 12px;
+    color: #94a3b8;
+    font-weight: 600;
+    line-height: 1.5;
+  }
+
+  .write-cta-area {
+    position: sticky;
+    bottom: 0;
+    border-top: 1px solid #e5e7eb;
+    box-shadow: none;
+  }
+
+  .submit-btn {
+    max-width: 1200px;
+  }
 }
 
 @media (max-width: 480px) {

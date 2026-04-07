@@ -6,6 +6,7 @@ import { usePilaCon } from "../store/pilaconStore";
 import { useCategory } from "../context/CategoryContext";
 import { ICONS } from "../constants/icons";
 import RegionFilterSheet from "../components/RegionFilterSheet";
+import useDevice from "../hooks/useDevice";
 
 const WORK_TYPES = [
   { id: "sub", label: "대타/급구" },
@@ -40,7 +41,11 @@ import { fetchCenters, analyzeJobPosting } from "../api/client";
 
 const LS_KEY = "pilacon:draft:job";
 
+import usePageTitle from "../hooks/usePageTitle";
+
 export default function Write() {
+  usePageTitle("공고등록 | 핏잡");
+  const { isDesktop } = useDevice();
   const navigate = useNavigate();
   const { createJob, logout, confirm, showToast } = usePilaCon();
   const [savedCenters, setSavedCenters] = useState([]);
@@ -333,6 +338,14 @@ export default function Write() {
   // 날짜 포맷팅 (YYYY-MM-DD -> YYYY.MM.DD)
   const displayDate = newPost.workDate ? newPost.workDate.replace(/-/g, '.') : "";
   const displayEndDate = newPost.workEndDate ? newPost.workEndDate.replace(/-/g, '.') : "";
+  const workTypeLabel = WORK_TYPES.find((t) => t.id === newPost.type)?.label || "-";
+  const summaryDateText = newPost.type === "regular"
+    ? (displayDate || "미입력")
+    : newPost.isToday
+      ? `${displayDate || "오늘"} (당일)`
+      : (displayDate && displayEndDate ? `${displayDate} ~ ${displayEndDate}` : "미입력");
+  const summaryTimeText = `${TIME_OPTIONS.find((o) => o.id === newPost.workTime)?.label || "-"}${newPost.workTimeNote ? ` (${newPost.workTimeNote})` : ""}`;
+  const summaryPayText = newPost.pay ? `${Number(newPost.pay).toLocaleString()}원` : "미입력";
 
   // 당일 체크박스 핸들러
   const handleTodayChange = (checked) => {
@@ -496,6 +509,7 @@ export default function Write() {
 
       {/* 스크롤 영역 */}
       <div className="write-scroll-area">
+        <div className={`write-desktop-layout ${isDesktop ? "desktop" : ""}`}>
         <div className="write-form">
           {/* AI 자동채우기 영역 */}
           <div className="form-section ai-section">
@@ -928,6 +942,24 @@ export default function Write() {
 
             <p className="hint-text">게시 후 제목만 초기화되고, 다른 설정값은 유지됩니다.</p>
           </form>
+        </div>
+
+        {isDesktop && (
+          <aside className="write-side-summary">
+            <h3>공고 미리보기</h3>
+            <div className="summary-title">{newPost.title || "공고 제목을 입력해주세요"}</div>
+            <div className="summary-list">
+              <div><span>직군</span><strong>{newPost.category || "-"}</strong></div>
+              <div><span>근무 형태</span><strong>{workTypeLabel}</strong></div>
+              <div><span>근무 날짜</span><strong>{summaryDateText}</strong></div>
+              <div><span>근무 시간</span><strong>{summaryTimeText}</strong></div>
+              <div><span>근무 지역</span><strong>{newPost.location || newPost.address || "미입력"}</strong></div>
+              <div><span>급여</span><strong>{summaryPayText}</strong></div>
+              <div><span>센터명</span><strong>{newPost.studio || "미입력"}</strong></div>
+            </div>
+            <p className="summary-note">데스크톱에서는 입력값을 우측에서 바로 확인할 수 있습니다.</p>
+          </aside>
+        )}
         </div>
 
         {/* 하단 고정 버튼 영역 */}

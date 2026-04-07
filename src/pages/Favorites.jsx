@@ -3,9 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { usePilaCon } from '../store/pilaconStore';
 import { ICONS } from '../constants/icons';
 import JobCard from '../components/JobCard';
+import useDevice from '../hooks/useDevice';
 
 export default function Favorites() {
     const navigate = useNavigate();
+    const { isDesktop } = useDevice();
     const { favorites, isFavorited, toggleFavorite, loading } = usePilaCon();
 
     const handleBack = () => {
@@ -26,7 +28,16 @@ export default function Favorites() {
                 <div style={{ width: 40 }} />
             </header>
 
-            <main className="favorites-content" style={{ padding: '20px' }}>
+            <main className={`favorites-content ${isDesktop ? 'desktop' : ''}`} style={{ padding: '20px' }}>
+                {isDesktop && (
+                    <aside className="settings-side-nav">
+                        <button className="side-item" onClick={() => navigate('/mypage')}>내 정보</button>
+                        <button className="side-item active">즐겨찾기</button>
+                        <button className="side-item" onClick={() => navigate('/mypage/recent-jobs')}>최근 본 공고</button>
+                        <button className="side-item" onClick={() => navigate('/mypage/blocked-users')}>차단 사용자</button>
+                    </aside>
+                )}
+                <section className="favorites-main">
                 {loading ? (
                     <div style={{ padding: '40px', textAlign: 'center', color: '#64748b', fontWeight: 700 }}>
                         불러오는 중...
@@ -68,6 +79,7 @@ export default function Favorites() {
                         ))}
                     </div>
                 )}
+                </section>
             </main>
 
             <style>{`
@@ -91,6 +103,55 @@ export default function Favorites() {
           font-weight: 800;
           margin: 0;
           color: #1e293b;
+        }
+        .favorites-main {
+          min-width: 0;
+        }
+        @media (min-width: 1200px) {
+          .favorites-content.desktop {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 240px minmax(0, 1fr);
+            gap: 16px;
+            align-items: start;
+            padding: 20px !important;
+          }
+          .settings-side-nav {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 10px;
+            position: sticky;
+            top: 84px;
+            display: grid;
+            gap: 8px;
+          }
+          .side-item {
+            width: 100%;
+            height: 40px;
+            border-radius: 10px;
+            border: 1px solid #eef2f7;
+            background: #fff;
+            color: #475569;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            text-align: left;
+            padding: 0 12px;
+          }
+          .side-item.active {
+            background: #eef2ff;
+            color: #4f46e5;
+            border-color: #c7d2fe;
+          }
+          .favorites-main {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 16px;
+            min-height: 480px;
+          }
         }
       `}</style>
         </div>

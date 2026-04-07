@@ -1,6 +1,7 @@
 import { NavLink } from "react-router-dom";
 import { ICONS, ICON_CONFIG } from "../constants/icons";
 import { usePilaCon } from "../store/pilaconStore";
+import { resetAppScrollPosition } from "../utils/scroll";
 import "./BottomNav.css";
 
 export default function BottomNav() {
@@ -21,6 +22,7 @@ export default function BottomNav() {
             key={item.to}
             to={item.to}
             end={item.to === "/"}
+            onClick={() => resetAppScrollPosition()}
             className={({ isActive }) =>
               isActive ? "nav-item active" : "nav-item"
             }

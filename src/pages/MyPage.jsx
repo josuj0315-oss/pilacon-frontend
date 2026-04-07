@@ -1,10 +1,19 @@
 import { useNavigate } from 'react-router-dom';
 import { usePilaCon } from '../store/pilaconStore';
 import { ICONS, ICON_CONFIG } from '../constants/icons';
+import useDevice from '../hooks/useDevice';
 
 export default function MyPage() {
-  const { user, logout, favorites } = usePilaCon();
+  const { isDesktop } = useDevice();
+  const { user, logout } = usePilaCon();
   const navigate = useNavigate();
+
+  const handleLogout = () => {
+    if (window.confirm('로그아웃 하시겠습니까?')) {
+      logout();
+      navigate('/');
+    }
+  };
 
   const menuGroups = [
     {
@@ -37,11 +46,13 @@ export default function MyPage() {
   ];
 
   return (
-    <div className="page my-page" style={{ padding: 0 }}>
-      <header className="page-header">
-        <h2 className="unified-title">내 정보</h2>
-        <div style={{ width: 44 }} />
-      </header>
+    <div className={`page my-page ${isDesktop ? "my-page-desktop" : ""}`} style={{ padding: 0 }}>
+      {isDesktop && (
+        <header className="page-header">
+          <h2 className="unified-title">내 정보</h2>
+          <div style={{ width: 44 }} />
+        </header>
+      )}
 
       <div className="mypage-content">
         {/* 프로필 카드 영역 */}
@@ -61,6 +72,21 @@ export default function MyPage() {
             <button className="profile-edit-btn" onClick={() => navigate('/mypage/profile/edit')}>
               프로필 수정
             </button>
+          </div>
+
+          <div className="profile-meta-list">
+            <div className="profile-meta-row">
+              <span>아이디</span>
+              <strong>{user?.username || '-'}</strong>
+            </div>
+            <div className="profile-meta-row">
+              <span>이메일</span>
+              <strong>{user?.email || '-'}</strong>
+            </div>
+            <div className="profile-meta-row">
+              <span>연락처</span>
+              <strong>{user?.phone || '-'}</strong>
+            </div>
           </div>
         </section>
 
@@ -86,6 +112,13 @@ export default function MyPage() {
             </div>
           ))}
         </div>
+
+        {/* 로그아웃 버튼 */}
+        <div className="logout-section">
+          <button className="logout-btn-full" onClick={handleLogout}>
+            로그아웃
+          </button>
+        </div>
       </div>
 
       <style>{`
@@ -97,22 +130,15 @@ export default function MyPage() {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          padding: 12px 20px;
-          height: 56px;
-          background: rgba(255, 255, 255, 0.9);
-          backdrop-filter: blur(10px);
-          border-bottom: 1px solid rgba(0,0,0,0.03);
+          padding: 0 16px;
+          height: 48px;
+          background: #f8fafc;
+          border-bottom: 1px solid #e9eef6;
           position: sticky;
           top: 0;
-          z-index: 1000;
+          z-index: 80;
+          isolation: isolate;
         }
-        .unified-title {
-          font-size: 18px;
-          font-weight: 800;
-          color: #1e293b;
-          margin: 0;
-        }
-        
         /* 프로필 섹션 스타일 */
         .profile-section {
           background: #fff;
@@ -163,6 +189,31 @@ export default function MyPage() {
           font-weight: 700;
           cursor: pointer;
         }
+        .profile-meta-list {
+          display: none;
+        }
+        .profile-meta-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+        }
+        .profile-meta-row span {
+          font-size: 12px;
+          font-weight: 700;
+          color: #94a3b8;
+          flex-shrink: 0;
+        }
+        .profile-meta-row strong {
+          font-size: 12px;
+          font-weight: 700;
+          color: #334155;
+          min-width: 0;
+          text-align: right;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
 
         /* 메뉴 그룹 스타일 (당근마켓 리스트형) */
         .menu-groups {
@@ -209,6 +260,86 @@ export default function MyPage() {
           font-size: 15px;
           font-weight: 600;
           color: #334155;
+        }
+
+        .logout-section {
+          padding: 24px 20px 64px 20px;
+        }
+        .logout-btn-full {
+          width: 100%;
+          padding: 16px;
+          background: #fff;
+          border: 1px solid #e2e8f0;
+          border-radius: 14px;
+          color: #ef4444;
+          font-size: 15px;
+          font-weight: 700;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        .logout-btn-full:active {
+          background: #fef2f2;
+          transform: scale(0.98);
+        }
+        @media (min-width: 1200px) {
+          .my-page-desktop {
+            position: relative;
+            min-height: 100%;
+            overflow: hidden;
+          }
+          .my-page-desktop .page-header {
+            background: #f8fafc;
+            z-index: 80;
+          }
+          .my-page-desktop .mypage-content {
+            position: relative;
+            z-index: 1;
+            display: grid;
+            grid-template-columns: 300px minmax(0, 1fr);
+            gap: 14px;
+            padding: 10px 12px 14px;
+            width: min(1060px, 100%);
+            margin: 0 auto;
+            align-items: start;
+          }
+          .my-page-desktop .profile-section {
+            margin-bottom: 0;
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            position: sticky;
+            top: 62px;
+          }
+          .my-page-desktop .profile-main {
+            align-items: center;
+          }
+          .my-page-desktop .profile-info {
+            min-width: 0;
+          }
+          .my-page-desktop .profile-email {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
+          .my-page-desktop .profile-meta-list {
+            margin-top: 14px;
+            border-top: 1px solid #eef2f7;
+            padding-top: 12px;
+            display: grid;
+            gap: 8px;
+          }
+          .my-page-desktop .menu-groups {
+            gap: 10px;
+          }
+          .my-page-desktop .group-container {
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            overflow: hidden;
+          }
+          .my-page-desktop .logout-section {
+            padding: 0;
+            margin-top: 10px;
+            grid-column: 2;
+          }
         }
       `}</style>
     </div>

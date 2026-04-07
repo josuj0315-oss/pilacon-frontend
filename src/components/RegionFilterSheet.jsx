@@ -226,6 +226,7 @@ export default function RegionFilterSheet({
         }
         .sheet-tabs {
           display: flex;
+          align-items: center;
           gap: 8px;
           overflow-x: auto;
           margin-bottom: 20px;
@@ -235,7 +236,9 @@ export default function RegionFilterSheet({
         }
         .sheet-tabs::-webkit-scrollbar { display: none; }
         .sheet-tab {
-          padding: 10px 16px;
+          height: 40px;
+          min-width: 72px;
+          padding: 0 16px;
           border-radius: 12px;
           border: 1px solid #f1f5f9;
           background: #f8fafc;
@@ -245,12 +248,18 @@ export default function RegionFilterSheet({
           white-space: nowrap;
           cursor: pointer;
           transition: all 0.2s;
+          flex: 0 0 auto;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          line-height: 1;
+          box-sizing: border-box;
         }
         .sheet-tab.active {
           background: #5b5ff5;
           color: #fff;
           border-color: #5b5ff5;
-          box-shadow: 0 4px 12px rgba(91, 95, 245, 0.2);
+          box-shadow: none;
         }
         .sheet-list {
           flex: 1;

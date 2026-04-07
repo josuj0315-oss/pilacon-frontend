@@ -6,12 +6,16 @@ import InstructorProfileView from "./InstructorProfileView";
 import { usePilaCon } from "../store/pilaconStore";
 import { useBodyScrollLock } from "../utils/hooks";
 
+import usePageTitle from "../hooks/usePageTitle";
+
 export default function InstructorProfileManager() {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
     const { profiles, deleteProfile, setPrimaryProfile, saveProfile, applyToJob, jobs, confirm, showToast } = usePilaCon();
     
     const initialMode = searchParams.get("mode");
+    usePageTitle(initialMode === "new" ? "이력서작성 | 핏잡" : "프로필 관리 | 핏잡");
+
     const fromJobId = searchParams.get("fromJobId");
     const jobType = searchParams.get("jobType"); // 'sub' or 'regular'
 

@@ -41,11 +41,21 @@
 .app-title {
   font-size: 38px;
   font-weight: 900;
-  color: #0f172a;
+  color: #1e1b4b;
   margin-bottom: 16px;
   letter-spacing: -0.04em;
   line-height: 1;
   font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+  display: inline-flex;
+  align-items: baseline;
+}
+
+.app-title-fit {
+  color: #5c5fed;
+}
+
+.app-title-job {
+  color: #1e1b4b;
 }
 
 .app-description {

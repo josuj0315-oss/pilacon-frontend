@@ -4,6 +4,7 @@ import {
     MessageCircle,
     User,
     Bell,
+    BellOff,
     Settings,
     ChevronRight,
     Plus,
@@ -31,7 +32,8 @@ import {
     Briefcase,
     MessageSquare,
     Calendar,
-    Download
+    Download,
+    Funnel
 } from 'lucide-react';
 
 export const ICONS = {
@@ -41,6 +43,7 @@ export const ICONS = {
     message: MessageSquare,
     profile: User,
     notification: Bell,
+    bellOff: BellOff,
     settings: Settings,
     chevronRight: ChevronRight,
     chevronLeft: ChevronLeft,
@@ -68,7 +71,8 @@ export const ICONS = {
     plusCircle: PlusCircle,
     studio: Briefcase,
     calendar: Calendar,
-    download: Download
+    download: Download,
+    filter: Funnel
 };
 
 export const ICON_CONFIG = {

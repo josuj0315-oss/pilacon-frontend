@@ -13,6 +13,7 @@
 
 /* --- Header --- */
 .wizard-header {
+    position: relative;
     display: flex;
     flex-direction: column;
     padding: calc(env(safe-area-inset-top, 20px) + 8px) 16px 16px;
@@ -21,7 +22,7 @@
 
 .header-top {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-start;
     align-items: center;
     width: 100%;
 }
@@ -41,6 +42,13 @@
 
 .header-btn:hover {
     background: #f1f5f9;
+}
+
+.header-close-btn {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    z-index: 12;
 }
 
 .progress-container {

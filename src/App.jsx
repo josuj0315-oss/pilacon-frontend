@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { usePilaCon } from "./store/pilaconStore";
 import AppLayout from "./layouts/AppLayout";
+import PCLayout from "./layouts/PCLayout";
 
 import Home from "./pages/Home";
 import JobPostDetail from "./pages/JobPostDetail";
@@ -27,12 +28,15 @@ import CenterManagement from "./pages/CenterManagement";
 import Onboarding from "./components/Onboarding";
 import GlobalUI from "./components/GlobalUI";
 import { useState } from "react";
+import useDevice from "./hooks/useDevice";
 
 export default function App() {
   const { user, isAuthLoading } = usePilaCon();
+  const { isDesktop } = useDevice();
   const [showOnboarding, setShowOnboarding] = useState(() => {
     return !localStorage.getItem("onboarding_seen");
   });
+  const MainLayout = isDesktop ? PCLayout : AppLayout;
 
   const handleOnboardingComplete = () => {
     localStorage.setItem("onboarding_seen", "true");
@@ -52,12 +56,38 @@ export default function App() {
   }
 
   if (!user) {
+    if (!isDesktop) {
+      return (
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<SignupWizard />} />
+          <Route path="*" element={<Navigate to="/login" />} />
+        </Routes>
+      );
+    }
+
     return (
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<SignupWizard />} />
-        <Route path="*" element={<Navigate to="/login" />} />
-      </Routes>
+      <div id="appScreen">
+        <GlobalUI />
+        <Routes>
+          <Route element={<MainLayout />}>
+            <Route path="/" element={<Home />} />
+            <Route path="/jobs/:id" element={<JobPostDetail />} />
+          </Route>
+
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<SignupWizard />} />
+
+          <Route path="/activity" element={<Navigate to="/login?next=%2Factivity" replace />} />
+          <Route path="/chat" element={<Navigate to="/login?next=%2Fchat" replace />} />
+          <Route path="/chat/:id" element={<Navigate to="/login?next=%2Fchat" replace />} />
+          <Route path="/write" element={<Navigate to="/login?next=%2Fwrite" replace />} />
+          <Route path="/mypage" element={<Navigate to="/login?next=%2Fmypage" replace />} />
+          <Route path="/mypage/*" element={<Navigate to="/login?next=%2Fmypage" replace />} />
+          <Route path="/profile/*" element={<Navigate to="/login?next=%2Fprofile%2Fedit" replace />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </div>
     );
   }
 
@@ -65,10 +95,11 @@ export default function App() {
     <div id="appScreen">
       <GlobalUI />
       <Routes>
-        <Route element={<AppLayout />}>
+        <Route element={<MainLayout />}>
           <Route path="/" element={<Home />} />
           <Route path="/activity" element={<Activity />} />
           <Route path="/chat" element={<Chat />} />
+          <Route path="/jobs/:id" element={<JobPostDetail />} />
           <Route path="/mypage" element={<MyPage />} />
           <Route path="/mypage/favorites" element={<Favorites />} />
         </Route>
@@ -78,7 +109,6 @@ export default function App() {
         <Route path="/profile/edit" element={<InstructorProfileManager />} />
         <Route path="/profile/centers" element={<CenterManagement />} />
         <Route path="/mypage/profile/edit" element={<UserInfoEdit />} />
-        <Route path="/jobs/:id" element={<JobPostDetail />} />
         <Route path="/jobs/:id/edit" element={<JobEdit />} />
         <Route path="/activity/applicants/:jobId" element={<ApplicantList />} />
         <Route path="/chat/:id" element={<ChatRoom />} />

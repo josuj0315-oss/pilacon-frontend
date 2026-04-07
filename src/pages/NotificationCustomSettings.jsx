@@ -3,12 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { usePilaCon } from '../store/pilaconStore';
 import { ICONS } from '../constants/icons';
 import RegionFilterSheet from '../components/RegionFilterSheet';
+import useDevice from '../hooks/useDevice';
 
 const WORKOUT_OPTIONS = ["필라테스", "요가", "PT", "기타"];
 const EMPLOYMENT_OPTIONS = ["대타", "단기", "정규직"];
 
 export default function NotificationCustomSettings() {
     const navigate = useNavigate();
+    const { isDesktop } = useDevice();
     const { notificationSettings, updateNotificationSettings } = usePilaCon();
     const { posts } = notificationSettings;
 
@@ -47,7 +49,15 @@ export default function NotificationCustomSettings() {
                 <div style={{ width: 44 }} />
             </header>
 
-            <main className="custom-content">
+            <main className={`custom-content ${isDesktop ? 'desktop' : ''}`}>
+                {isDesktop && (
+                    <aside className="settings-side-nav">
+                        <button className="side-item" onClick={() => navigate('/mypage/notification-settings')}>알림 설정</button>
+                        <button className="side-item active">게시물 맞춤 설정</button>
+                        <button className="side-item" onClick={() => navigate('/mypage/app-settings')}>앱 설정</button>
+                    </aside>
+                )}
+                <section className="custom-main">
                 <section className="guide-section">
                     <p className="guide-text">
                         받고 싶은 공고의 조건을 설정해주세요.<br/>
@@ -144,6 +154,7 @@ export default function NotificationCustomSettings() {
                 <div className="save-action">
                     <button className="primary-btn" onClick={() => navigate(-1)}>설정 완료</button>
                 </div>
+                </section>
             </main>
 
             {showRegionSheet && (
@@ -185,6 +196,9 @@ export default function NotificationCustomSettings() {
                     flex: 1;
                     padding: 24px 20px;
                     overflow-y: auto;
+                }
+                .custom-main {
+                    min-width: 0;
                 }
                 .guide-section {
                     margin-bottom: 32px;
@@ -325,6 +339,51 @@ export default function NotificationCustomSettings() {
                 input:checked + .slider:before { transform: translateX(18px); }
                 .slider.round { border-radius: 34px; }
                 .slider.round:before { border-radius: 50%; }
+                @media (min-width: 1200px) {
+                    .custom-content.desktop {
+                        max-width: 1200px;
+                        margin: 0 auto;
+                        display: grid;
+                        grid-template-columns: 240px minmax(0, 1fr);
+                        gap: 16px;
+                        align-items: start;
+                        padding: 20px;
+                    }
+                    .settings-side-nav {
+                        background: #fff;
+                        border: 1px solid #e2e8f0;
+                        border-radius: 14px;
+                        padding: 10px;
+                        position: sticky;
+                        top: 84px;
+                        display: grid;
+                        gap: 8px;
+                    }
+                    .side-item {
+                        width: 100%;
+                        height: 40px;
+                        border-radius: 10px;
+                        border: 1px solid #eef2f7;
+                        background: #fff;
+                        color: #475569;
+                        font-size: 13px;
+                        font-weight: 700;
+                        cursor: pointer;
+                        text-align: left;
+                        padding: 0 12px;
+                    }
+                    .side-item.active {
+                        background: #eef2ff;
+                        color: #4f46e5;
+                        border-color: #c7d2fe;
+                    }
+                    .custom-main {
+                        background: #fff;
+                        border: 1px solid #e2e8f0;
+                        border-radius: 14px;
+                        padding: 16px 20px;
+                    }
+                }
             `}</style>
         </div>
     );

@@ -20,10 +20,12 @@ import {
 import { formatPayKRW } from "../utils/format";
 import ApplyConfirmSheet from "../components/ApplyConfirmSheet";
 import axios from "axios";
+import useDevice from "../hooks/useDevice";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 
 export default function JobPostDetail() {
+  const { isDesktop } = useDevice();
   const { id } = useParams();
   const navigate = useNavigate();
   const { jobs, user, deleteJob, loading: storeLoading, isFavorited, toggleFavorite, applications, refreshApplications, showToast, confirm } = usePilaCon();
@@ -78,7 +80,7 @@ export default function JobPostDetail() {
 
   if (loading || storeLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-white">
+      <div className={`flex items-center justify-center bg-white ${isDesktop ? "min-h-[60vh] rounded-[28px] border border-gray-100" : "min-h-screen"}`}>
         <div className="flex flex-col items-center gap-3">
           <div className="w-8 h-8 border-4 border-[#5b5ff5] border-t-transparent rounded-full animate-spin"></div>
           <p className="text-gray-500 font-medium">공고를 불러오는 중...</p>
@@ -89,7 +91,7 @@ export default function JobPostDetail() {
 
   if (!job) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-white px-6 text-center">
+      <div className={`flex flex-col items-center justify-center bg-white px-6 text-center ${isDesktop ? "min-h-[60vh] rounded-[28px] border border-gray-100" : "min-h-screen"}`}>
         <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-6">
           <Search size={32} color="#94a3b8" />
         </div>
@@ -134,6 +136,80 @@ export default function JobPostDetail() {
     navigate(`/jobs/${job.id}/edit`);
   };
 
+  const handleShare = async () => {
+    const url = window.location.href;
+    const shareData = {
+      title: job.title,
+      text: job.title,
+      url,
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+        return;
+      }
+
+      await navigator.clipboard.writeText(url);
+      showToast("링크가 복사되었습니다", "success");
+    } catch (error) {
+      if (error?.name === "AbortError") return;
+
+      try {
+        await navigator.clipboard.writeText(url);
+        showToast("링크가 복사되었습니다", "success");
+      } catch (clipboardError) {
+        console.error("Failed to share job:", clipboardError);
+        showToast("공유에 실패했습니다.", "error");
+      }
+    }
+  };
+
+  const renderActionButton = (desktop = false) => {
+    if (isOwner) {
+      return (
+        <button className={`w-full ${desktop ? "h-[52px]" : "h-[58px]"} bg-gray-100 text-gray-400 rounded-2xl text-[16px] font-black cursor-not-allowed shadow-inner`} disabled>
+          내가 등록한 공고입니다
+        </button>
+      );
+    }
+
+    if (isClosed) {
+      return (
+        <button
+          className={`w-full ${desktop ? "h-[52px]" : "h-[58px]"} bg-gray-200 text-gray-400 rounded-2xl text-[16px] font-black flex items-center justify-center gap-2 cursor-not-allowed`}
+          disabled
+        >
+          <Info size={20} strokeWidth={3} />
+          모집이 완료된 공고입니다
+        </button>
+      );
+    }
+
+    if (existingApplication) {
+      return (
+        <button
+          className={`w-full ${desktop ? "h-[52px]" : "h-[58px]"} bg-gray-100 text-gray-400 rounded-2xl text-[16px] font-black flex items-center justify-center gap-2 cursor-not-allowed shadow-inner`}
+          onClick={() => navigate(`/activity?view=appliedDetail&id=${existingApplication.id}`)}
+          disabled
+        >
+          <Activity size={20} className="text-gray-300" strokeWidth={3} />
+          이미 지원한 공고입니다
+        </button>
+      );
+    }
+
+    return (
+      <button
+        className={`w-full ${desktop ? "h-[52px]" : "h-[58px]"} bg-[#5b5ff5] text-white rounded-2xl text-[16px] font-black flex items-center justify-center gap-2 shadow-lg shadow-indigo-200 active:scale-[0.98] transition-all duration-200`}
+        onClick={handleApplyClick}
+      >
+        <Activity size={20} strokeWidth={3} />
+        지원하기
+      </button>
+    );
+  };
+
   // Helper for time display
   const getTimeAgo = (dateStr) => {
     if (!dateStr) return "방금 전";
@@ -149,8 +225,8 @@ export default function JobPostDetail() {
   };
 
   return (
-    <div className="job-post-detail bg-white min-h-screen font-sans selection:bg-indigo-100">
-      {/* 1) Sticky Header */}
+    <div className={`job-post-detail bg-white font-sans selection:bg-indigo-100 ${isDesktop ? "rounded-[28px] border border-gray-100 shadow-[0_2px_12px_rgba(15,23,42,0.04)]" : "min-h-screen"}`}>
+      {!isDesktop && (
       <header className="sticky top-0 bg-white border-b border-gray-100 z-[60]">
         <div className="max-w-lg mx-auto flex items-center justify-between px-5 h-14 relative">
           <button onClick={() => navigate(-1)} className="p-2 -ml-2 hover:bg-gray-50 rounded-full transition-colors" aria-label="뒤로가기">
@@ -158,7 +234,7 @@ export default function JobPostDetail() {
           </button>
 
           <div className="flex items-center gap-1">
-            <button className="p-2 hover:bg-gray-50 rounded-full transition-colors" aria-label="공유하기">
+            <button className="p-2 hover:bg-gray-50 rounded-full transition-colors" aria-label="공유하기" onClick={handleShare}>
               <Share2 size={22} color="#1e293b" />
             </button>
             <button
@@ -213,10 +289,117 @@ export default function JobPostDetail() {
           </div>
         </div>
       </header>
+      )}
 
-      <main className="max-w-lg mx-auto px-5 pb-32">
-        {/* 2) Core Info Section */}
-        <section className="pt-8 pb-8 border-b border-gray-100">
+      <main className={`${isDesktop ? "max-w-6xl pt-8 pb-10" : "max-w-lg pb-32"} mx-auto px-5`}>
+        <div className={`${isDesktop ? "grid grid-cols-[minmax(0,1fr)_304px] gap-10 items-start" : ""}`}>
+          <div>
+            {isDesktop && (
+              <section className="pt-1 pb-8 border-b border-gray-100">
+                <div className="flex items-start justify-between gap-6">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex gap-2 mb-4 flex-wrap">
+                      <span className="px-3 py-1 bg-indigo-50 text-[#5b5ff5] text-[11px] font-black rounded-full uppercase tracking-wider">
+                        {job.category || "필라테스"}
+                      </span>
+                      {job.type === 'sub' && (
+                        <span className="px-3 py-1 bg-rose-50 text-[#ff4747] text-[11px] font-black rounded-full uppercase tracking-wider">
+                          대타/급구
+                        </span>
+                      )}
+                      {job.type === 'short' && (
+                        <span className="px-3 py-1 bg-purple-50 text-[#9333ea] text-[11px] font-black rounded-full uppercase tracking-wider">
+                          단기
+                        </span>
+                      )}
+                      {job.type === 'regular' && (
+                        <span className="px-3 py-1 bg-emerald-50 text-[#10b981] text-[11px] font-black rounded-full uppercase tracking-wider">
+                          정규직
+                        </span>
+                      )}
+                      {job.taxDeduction && (
+                        <span className="px-3 py-1 bg-gray-100 text-[#64748b] text-[11px] font-black rounded-full uppercase tracking-wider border border-gray-200">
+                          3.3% 공제
+                        </span>
+                      )}
+                    </div>
+                    <h1 className="text-[32px] font-black text-[#1e293b] leading-[1.25] mb-3">{job.title}</h1>
+                    <div className="text-[13px] font-bold text-gray-400 flex items-center gap-2 flex-wrap">
+                      <span>{getTimeAgo(job.createdAt)}</span>
+                      <span>·</span>
+                      <span>조회 {job.views || 0}</span>
+                      {job.user && (
+                        <>
+                          <span>·</span>
+                          <span className="text-gray-400">{job.user.nickname || job.user.name || '사용자'}</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button className="p-2 hover:bg-gray-50 rounded-full transition-colors" aria-label="공유하기" type="button" onClick={handleShare}>
+                      <Share2 size={22} color="#1e293b" />
+                    </button>
+                    <button
+                      className="p-2 hover:bg-gray-50 rounded-full transition-colors"
+                      onClick={() => toggleFavorite(job.id)}
+                      aria-label="찜하기"
+                      type="button"
+                    >
+                      <Star
+                        size={22}
+                        className={`transition-all duration-300 ${favorited ? "scale-110 fill-[#fbbf24] text-[#fbbf24]" : "text-[#1e293b]"}`}
+                      />
+                    </button>
+                    {isOwner && (
+                      <div className="relative">
+                        <button
+                          className="p-2 hover:bg-gray-50 rounded-full transition-colors"
+                          onClick={() => setShowMenu(!showMenu)}
+                          aria-label="더보기"
+                          type="button"
+                        >
+                          <MoreVertical size={22} color="#1e293b" />
+                        </button>
+
+                        {showMenu && (
+                          <>
+                            <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)}></div>
+                            <div className="absolute right-0 mt-2 w-36 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-50 overflow-hidden animate-in fade-in zoom-in duration-200 origin-top-right">
+                              <button
+                                onClick={() => {
+                                  setShowMenu(false);
+                                  handleEdit();
+                                }}
+                                className="w-full flex items-center gap-3 px-4 py-3 text-[14px] font-bold text-gray-700 hover:bg-indigo-50 hover:text-[#5b5ff5] transition-colors"
+                              >
+                                <Edit size={16} />
+                                수정하기
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setShowMenu(false);
+                                  handleDelete();
+                                }}
+                                className="w-full flex items-center gap-3 px-4 py-3 text-[14px] font-bold text-rose-500 hover:bg-rose-50 transition-colors"
+                              >
+                                <Trash2 size={16} />
+                                삭제하기
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {/* 2) Core Info Section */}
+            <section className="pt-8 pb-8 border-b border-gray-100">
+          {!isDesktop && (
           <div className="flex gap-2 mb-4">
             <span className="px-3 py-1 bg-indigo-50 text-[#5b5ff5] text-[11px] font-black rounded-full uppercase tracking-wider">
               {job.category || "필라테스"}
@@ -242,9 +425,13 @@ export default function JobPostDetail() {
               </span>
             )}
           </div>
+          )}
+          {!isDesktop && (
           <h1 className="text-2xl font-black text-[#1e293b] leading-[1.3] mb-3">
             {job.title}
           </h1>
+          )}
+          {!isDesktop && (
           <div className="text-[13px] font-bold text-gray-400 flex items-center gap-2">
             <span>{getTimeAgo(job.createdAt)}</span>
             <span>·</span>
@@ -256,10 +443,11 @@ export default function JobPostDetail() {
               </>
             )}
           </div>
-        </section>
+          )}
+            </section>
 
-        {/* 3) Work Conditions Section (Vertical List) */}
-        <section className="py-2">
+            {/* 3) Work Conditions Section (Vertical List) */}
+            <section className="py-2">
           {/* Work Date / Deadline */}
           <div className="py-6 flex items-start gap-4 border-b border-gray-50 last:border-0">
             <div className="w-11 h-11 bg-gray-100 rounded-2xl flex items-center justify-center flex-shrink-0">
@@ -339,11 +527,11 @@ export default function JobPostDetail() {
               </div>
             </div>
           </div>
-        </section>
+            </section>
 
-        {/* 4) Equipment Section */}
-        {job.equipment && (Array.isArray(job.equipment) ? job.equipment.length > 0 : String(job.equipment).length > 0) && (
-          <section className="py-10 border-b border-gray-100">
+            {/* 4) Equipment Section */}
+            {job.equipment && (Array.isArray(job.equipment) ? job.equipment.length > 0 : String(job.equipment).length > 0) && (
+              <section className="py-10 border-b border-gray-100">
             <div className="flex items-center gap-2 mb-5">
               <Activity size={18} color="#1e293b" strokeWidth={3} />
               <h3 className="text-[16px] font-black text-[#1e293b]">보유 및 사용 기구</h3>
@@ -355,94 +543,85 @@ export default function JobPostDetail() {
                 </span>
               ))}
             </div>
-          </section>
-        )}
-
-        {/* 5) Description Section */}
-        <section className="py-10 border-b border-gray-100">
-          <h3 className="text-[16px] font-black text-[#1e293b] mb-5">상세 내용</h3>
-          <div className="text-[15px] font-bold text-[#475569] leading-[1.85] whitespace-pre-wrap">
-            {job.description || "상세 내용이 작성되지 않았습니다."}
-          </div>
-        </section>
-
-        {/* 6) Center Info Section */}
-        <section className="py-10">
-          <div className="flex items-center gap-2 mb-5">
-            <Info size={19} color="#1e293b" strokeWidth={3} />
-            <h3 className="text-[16px] font-black text-[#1e293b]">센터 정보</h3>
-          </div>
-
-          <div className="bg-gray-50/80 p-7 rounded-[28px] space-y-5 border border-gray-100/50">
-            {job.companyName && (
-              <div className="flex justify-between items-center">
-                <span className="text-[13px] font-bold text-gray-400">업체명</span>
-                <span className="text-[15px] font-black text-[#1e293b]">{job.companyName}</span>
-              </div>
+              </section>
             )}
-            {job.phone && (
-              <div className="flex justify-between items-center">
-                <span className="text-[13px] font-bold text-gray-400">센터 연락처</span>
-                <div className="flex items-center gap-1.5 text-[#5b5ff5]">
-                  <Phone size={14} className="fill-[#5b5ff5]" strokeWidth={3} />
-                  <span className="text-[15px] font-black tracking-tight">{job.phone}</span>
+
+            {/* 5) Description Section */}
+            <section className="py-10 border-b border-gray-100">
+              <h3 className="text-[16px] font-black text-[#1e293b] mb-5">상세 내용</h3>
+              <div className="text-[15px] font-bold text-[#475569] leading-[1.85] whitespace-pre-wrap">
+                {job.description || "상세 내용이 작성되지 않았습니다."}
+              </div>
+            </section>
+
+            {/* 6) Center Info Section */}
+            <section className="py-10">
+              <div className="flex items-center gap-2 mb-5">
+                <Info size={19} color="#1e293b" strokeWidth={3} />
+                <h3 className="text-[16px] font-black text-[#1e293b]">센터 정보</h3>
+              </div>
+
+              <div className="bg-gray-50/80 p-7 rounded-[28px] space-y-5 border border-gray-100/50">
+                {job.companyName && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-[13px] font-bold text-gray-400">업체명</span>
+                    <span className="text-[15px] font-black text-[#1e293b]">{job.companyName}</span>
+                  </div>
+                )}
+                {job.phone && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-[13px] font-bold text-gray-400">센터 연락처</span>
+                    <div className="flex items-center gap-1.5 text-[#5b5ff5]">
+                      <Phone size={14} className="fill-[#5b5ff5]" strokeWidth={3} />
+                      <span className="text-[15px] font-black tracking-tight">{job.phone}</span>
+                    </div>
+                  </div>
+                )}
+                {job.payDate && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-[13px] font-bold text-gray-400">급여 지급일</span>
+                    <span className="text-[15px] font-black text-[#1e293b]">{job.payDate}</span>
+                  </div>
+                )}
+                {job.taxDeduction && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-[13px] font-bold text-gray-400">세금 공제</span>
+                    <span className="text-[15px] font-black text-[#e11d48]">3.3% 공제 적용</span>
+                  </div>
+                )}
+                {!job.companyName && !job.phone && !job.payDate && !job.taxDeduction && (
+                  <p className="text-center text-gray-400 text-sm font-bold py-2">등록된 센터 상세 정보가 없습니다.</p>
+                )}
+              </div>
+            </section>
+          </div>
+
+          {isDesktop && (
+            <aside className="sticky top-24 self-start">
+              <div className="w-[304px] bg-white border border-slate-200 rounded-[24px] p-5 shadow-[0_10px_24px_rgba(15,23,42,0.05)]">
+                <div className="mb-4">
+                  <div className="text-[12px] font-bold text-gray-400">요약</div>
+                  <div className="mt-1 text-[18px] font-black text-[#1e293b] leading-snug">{job.title}</div>
+                  <div className="mt-2 text-[14px] font-black text-[#5b5ff5]">{formatPayKRW(job.pay)}</div>
+                </div>
+                {renderActionButton(true)}
+                <div className="mt-3 text-[12px] font-semibold text-gray-400">
+                  지원 전 근무일/근무시간/정산 정보를 확인해주세요.
                 </div>
               </div>
-            )}
-            {job.payDate && (
-              <div className="flex justify-between items-center">
-                <span className="text-[13px] font-bold text-gray-400">급여 지급일</span>
-                <span className="text-[15px] font-black text-[#1e293b]">{job.payDate}</span>
-              </div>
-            )}
-            {job.taxDeduction && (
-              <div className="flex justify-between items-center">
-                <span className="text-[13px] font-bold text-gray-400">세금 공제</span>
-                <span className="text-[15px] font-black text-[#e11d48]">3.3% 공제 적용</span>
-              </div>
-            )}
-            {!job.companyName && !job.phone && !job.payDate && !job.taxDeduction && (
-              <p className="text-center text-gray-400 text-sm font-bold py-2">등록된 센터 상세 정보가 없습니다.</p>
-            )}
-          </div>
-        </section>
+            </aside>
+          )}
+        </div>
       </main>
 
       {/* 7) Fixed Bottom CTA */}
-      <footer className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-lg border-t border-gray-100 z-50">
-        <div className="max-w-lg mx-auto px-5 pt-3.5 pb-10">
-          {isOwner ? (
-            <button className="w-full h-[58px] bg-gray-100 text-gray-400 rounded-2xl text-[16px] font-black cursor-not-allowed shadow-inner" disabled>
-              내가 등록한 공고입니다
-            </button>
-          ) : isClosed ? (
-            <button
-              className="w-full h-[58px] bg-gray-200 text-gray-400 rounded-2xl text-[16px] font-black flex items-center justify-center gap-2 cursor-not-allowed"
-              disabled
-            >
-              <Info size={20} strokeWidth={3} />
-              모집이 완료된 공고입니다
-            </button>
-          ) : existingApplication ? (
-            <button
-              className="w-full h-[58px] bg-gray-100 text-gray-400 rounded-2xl text-[16px] font-black flex items-center justify-center gap-2 cursor-not-allowed shadow-inner"
-              onClick={() => navigate(`/activity?view=appliedDetail&id=${existingApplication.id}`)}
-              disabled
-            >
-              <Activity size={20} className="text-gray-300" strokeWidth={3} />
-              이미 지원한 공고입니다
-            </button>
-          ) : (
-            <button
-              className="w-full h-[58px] bg-[#5b5ff5] text-white rounded-2xl text-[16px] font-black flex items-center justify-center gap-2 shadow-lg shadow-indigo-200 active:scale-[0.98] transition-all duration-200"
-              onClick={handleApplyClick}
-            >
-              <Activity size={20} strokeWidth={3} />
-              지원하기
-            </button>
-          )}
-        </div>
-      </footer>
+      {!isDesktop && (
+        <footer className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-lg border-t border-gray-100 z-50">
+          <div className="max-w-lg mx-auto px-5 pt-3.5 pb-10">
+            {renderActionButton(false)}
+          </div>
+        </footer>
+      )}
 
       {showApplySheet && (
         <ApplyConfirmSheet

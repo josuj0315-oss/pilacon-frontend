@@ -112,6 +112,8 @@ const LS = {
   notificationSettings: "pilacon:v1:notification_settings",
   recentlyViewed: "pilacon:v1:recently_viewed",
   blockedUsers: "pilacon:v1:blocked_users",
+  mutedChatRooms: "pilacon:v1:muted_chat_rooms",
+  leftChatRooms: "pilacon:v1:left_chat_rooms",
 };
 
 const DEFAULT_NOTIFICATION_SETTINGS = {
@@ -164,6 +166,29 @@ function writeJSON(key, value) {
   try {
     localStorage.setItem(key, JSON.stringify(value));
   } catch { }
+}
+
+function normalizeBlockedUsers(input) {
+  if (!Array.isArray(input)) return [];
+  return input
+    .map((entry) => {
+      if (typeof entry === "string" || typeof entry === "number") {
+        return {
+          userId: String(entry),
+          nickname: "차단한 사용자",
+          profileImage: "",
+          blockedAt: new Date().toISOString(),
+        };
+      }
+      if (!entry) return null;
+      return {
+        userId: String(entry.userId ?? entry.id ?? ""),
+        nickname: entry.nickname || entry.name || "차단한 사용자",
+        profileImage: entry.profileImage || "",
+        blockedAt: entry.blockedAt || new Date().toISOString(),
+      };
+    })
+    .filter((entry) => entry?.userId);
 }
 
 /** ✅ category 정규화: 대소문자 및 오타 대응 */
@@ -228,7 +253,9 @@ export function PilaConProvider({ children }) {
   const [lastChatMessage, setLastChatMessage] = useState(null);
 
   const [recentlyViewedJobs, setRecentlyViewedJobs] = useState(() => readJSON(LS.recentlyViewed, []));
-  const [blockedUsers, setBlockedUsers] = useState(() => readJSON(LS.blockedUsers, []));
+  const [blockedUsers, setBlockedUsers] = useState(() => normalizeBlockedUsers(readJSON(LS.blockedUsers, [])));
+  const [mutedChatRooms, setMutedChatRooms] = useState(() => readJSON(LS.mutedChatRooms, []));
+  const [leftChatRooms, setLeftChatRooms] = useState(() => readJSON(LS.leftChatRooms, []));
 
   const [applications, setApplications] = useState(() => {
     const stored = readJSON(LS.applications, []);
@@ -928,7 +955,8 @@ export function PilaConProvider({ children }) {
   const getChatRooms = async () => {
     try {
       const response = await axios.get(`${API_BASE_URL}/chat/rooms`);
-      return response.data;
+      const leftRoomSet = new Set((leftChatRooms || []).map((roomId) => String(roomId)));
+      return (response.data || []).filter((room) => !leftRoomSet.has(String(room.id)));
     } catch (error) {
       console.error('Failed to fetch chat rooms:', error);
       return [];
@@ -1014,6 +1042,18 @@ export function PilaConProvider({ children }) {
 
   // SSE 연결
   useEffect(() => {
+    writeJSON(LS.blockedUsers, blockedUsers);
+  }, [blockedUsers]);
+
+  useEffect(() => {
+    writeJSON(LS.mutedChatRooms, mutedChatRooms);
+  }, [mutedChatRooms]);
+
+  useEffect(() => {
+    writeJSON(LS.leftChatRooms, leftChatRooms);
+  }, [leftChatRooms]);
+
+  useEffect(() => {
     const token = localStorage.getItem("accessToken");
     if (!user || !token) return;
 
@@ -1031,8 +1071,14 @@ export function PilaConProvider({ children }) {
         const payload = JSON.parse(event.data);
         const newNotif = payload.data;
         const resType = (newNotif.resourceType || '').toLowerCase();
+        const deepLink = newNotif.deepLink || "";
+        const roomIdFromLink = deepLink.startsWith("/chat/") ? deepLink.split("/chat/")[1]?.split("?")[0] : null;
+        const resourceRoomId = newNotif.resourceId || newNotif.roomId || roomIdFromLink;
+        const isMutedRoom = resourceRoomId && mutedChatRooms.some((roomId) => String(roomId) === String(resourceRoomId));
+        const isLeftRoom = resourceRoomId && leftChatRooms.some((roomId) => String(roomId) === String(resourceRoomId));
 
         if (resType === 'chat' || resType === 'message') {
+          if (isMutedRoom || isLeftRoom) return;
           // 채팅 알림은 메인 알림 리스트에 넣지 않고 별도 카운트 및 배너 연동
           setUnreadMessageCount(prev => prev + 1);
           if (notificationSettings.message.on) {
@@ -1055,7 +1101,7 @@ export function PilaConProvider({ children }) {
     return () => {
       if (eventSource) eventSource.close();
     };
-  }, [user]);
+  }, [user, mutedChatRooms, leftChatRooms, notificationSettings.message.on]);
 
   const resetLocal = () => {
     try {
@@ -1085,22 +1131,50 @@ export function PilaConProvider({ children }) {
     });
   };
 
-  const blockUser = (userId) => {
+  const isUserBlocked = (userId) => blockedUsers.some((entry) => String(entry.userId) === String(userId));
+
+  const blockUser = (userInfo) => {
     setBlockedUsers(prev => {
-      if (prev.includes(userId)) return prev;
-      const updated = [...prev, userId];
-      writeJSON(LS.blockedUsers, updated);
+      const nextUserId = String(userInfo?.userId ?? userInfo?.id ?? "");
+      if (!nextUserId || prev.some((entry) => String(entry.userId) === nextUserId)) return prev;
+      const updated = [
+        ...prev,
+        {
+          userId: nextUserId,
+          nickname: userInfo?.nickname || userInfo?.name || "차단한 사용자",
+          profileImage: userInfo?.profileImage || "",
+          blockedAt: new Date().toISOString(),
+        },
+      ];
       return updated;
     });
   };
 
   const unblockUser = (userId) => {
     setBlockedUsers(prev => {
-      const updated = prev.filter(id => id !== userId);
-      writeJSON(LS.blockedUsers, updated);
+      const updated = prev.filter(entry => String(entry.userId) !== String(userId));
       return updated;
     });
   };
+
+  const isChatRoomMuted = (roomId) => mutedChatRooms.some((id) => String(id) === String(roomId));
+
+  const toggleChatRoomMute = (roomId) => {
+    setMutedChatRooms(prev => (
+      prev.some((id) => String(id) === String(roomId))
+        ? prev.filter((id) => String(id) !== String(roomId))
+        : [...prev, roomId]
+    ));
+  };
+
+  const leaveChatRoom = (roomId) => {
+    setLeftChatRooms(prev => (
+      prev.some((id) => String(id) === String(roomId)) ? prev : [...prev, roomId]
+    ));
+    setMutedChatRooms(prev => prev.filter((id) => String(id) !== String(roomId)));
+  };
+
+  const hasLeftChatRoom = (roomId) => leftChatRooms.some((id) => String(id) === String(roomId));
 
   const value = useMemo(
     () => ({
@@ -1173,8 +1247,15 @@ export function PilaConProvider({ children }) {
       recentlyViewedJobs,
       addRecentlyViewedJob,
       blockedUsers,
+      mutedChatRooms,
+      leftChatRooms,
       blockUser,
       unblockUser,
+      isUserBlocked,
+      isChatRoomMuted,
+      toggleChatRoomMute,
+      leaveChatRoom,
+      hasLeftChatRoom,
       toasts,
       showToast,
       globalModal,
@@ -1184,7 +1265,7 @@ export function PilaConProvider({ children }) {
       showFullError,
       closeFullError,
     }),
-    [jobs, myJobs, appliedList, applications, refreshApplications, favorites, loading, isAuthLoading, user, profiles, notifications, unreadCount, unreadMessageCount, lastChatMessage, notificationSettings, recentlyViewedJobs, blockedUsers, toasts, globalModal, fullError, applyToJob, closeJob, createJob, deleteJob, deleteProfile, isFavorited, localLogin, loginWithToken, saveProfile, setPrimaryProfile, toggleFavorite, updateJob, updateUser, uploadChatImage, uploadFile, uploadResume, requestEmailVerification, verifyEmailCode]
+    [jobs, myJobs, appliedList, applications, refreshApplications, favorites, loading, isAuthLoading, user, profiles, notifications, unreadCount, unreadMessageCount, lastChatMessage, notificationSettings, recentlyViewedJobs, blockedUsers, mutedChatRooms, leftChatRooms, toasts, globalModal, fullError, applyToJob, closeJob, createJob, deleteJob, deleteProfile, isFavorited, localLogin, loginWithToken, saveProfile, setPrimaryProfile, toggleFavorite, updateJob, updateUser, uploadChatImage, uploadFile, uploadResume, requestEmailVerification, verifyEmailCode]
   );
 
   return <PilaConContext.Provider value={value}>{children}</PilaConContext.Provider>;

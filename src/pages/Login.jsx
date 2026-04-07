@@ -181,7 +181,10 @@ export default function Login() {
     return (
         <div id="loginScreen" className="login-screen">
             <div className="login-container">
-                <h1 className="app-title">Fit Job</h1>
+                <h1 className="app-title" aria-label="FITJOB">
+                    <span className="app-title-fit">FIT</span>
+                    <span className="app-title-job">JOB</span>
+                </h1>
                 <p className="app-description">
                     강사와 센터를 잇는<br />
                     가장 완벽한 필라테스 파트너

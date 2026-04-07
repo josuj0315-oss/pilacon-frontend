@@ -461,10 +461,15 @@ export default function SignupWizard() {
         <div className="signup-wizard-container">
             <header className="wizard-header">
                 <div className="header-top">
-                    <button className="header-btn" onClick={handleBack}>
+                    <button type="button" className="header-btn" onClick={handleBack}>
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
                     </button>
-                    <button className="header-btn" onClick={() => navigate('/login')}>
+                    <button
+                        type="button"
+                        className="header-btn header-close-btn"
+                        tabIndex={-1}
+                        onClick={() => navigate('/login')}
+                    >
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
                     </button>
                 </div>
@@ -488,7 +493,7 @@ export default function SignupWizard() {
                                 onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                             />
                             {formData.username && (
-                                <button className="clear-btn" onClick={() => handleClear('username')}>✕</button>
+                                <button type="button" tabIndex={-1} className="clear-btn" onClick={() => handleClear('username')}>✕</button>
                             )}
                         </div>
                         {status.idMsg && (
@@ -511,7 +516,7 @@ export default function SignupWizard() {
                                 autoFocus
                             />
                             {formData.email && (
-                                <button className="clear-btn" onClick={() => handleClear('email')}>✕</button>
+                                <button type="button" tabIndex={-1} className="clear-btn" onClick={() => handleClear('email')}>✕</button>
                             )}
                         </div>
                         {formData.email && !status.emailValid && (
@@ -574,32 +579,36 @@ export default function SignupWizard() {
                 {step === 4 && (
                     <>
                         <div className="input-container">
-                            <input
-                                type="password"
-                                className={`wizard-input ${formData.password && formData.password.length < 8 ? 'error' : ''}`}
-                                placeholder="비밀번호 (8자 이상)"
-                                value={formData.password}
-                                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                                autoFocus
-                            />
-                            {formData.password && (
-                                <button className="clear-btn" onClick={() => handleClear('password')}>✕</button>
-                            )}
+                            <div className="input-wrapper">
+                                <input
+                                    type="password"
+                                    className={`wizard-input ${formData.password && formData.password.length < 8 ? 'error' : ''}`}
+                                    placeholder="비밀번호 (8자 이상)"
+                                    value={formData.password}
+                                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                                    autoFocus
+                                />
+                                {formData.password && (
+                                    <button type="button" tabIndex={-1} className="clear-btn" onClick={() => handleClear('password')}>✕</button>
+                                )}
+                            </div>
                             {formData.password && formData.password.length < 8 && (
                                 <p className="validation-msg error">최소 8자 이상 입력해 주세요.</p>
                             )}
                         </div>
                         <div className="input-container">
-                            <input
-                                type="password"
-                                className={`wizard-input ${formData.passwordConfirm && formData.password !== formData.passwordConfirm ? 'error' : ''}`}
-                                placeholder="비밀번호 확인"
-                                value={formData.passwordConfirm}
-                                onChange={(e) => setFormData({ ...formData, passwordConfirm: e.target.value })}
-                            />
-                            {formData.passwordConfirm && (
-                                <button className="clear-btn" onClick={() => handleClear('passwordConfirm')}>✕</button>
-                            )}
+                            <div className="input-wrapper">
+                                <input
+                                    type="password"
+                                    className={`wizard-input ${formData.passwordConfirm && formData.password !== formData.passwordConfirm ? 'error' : ''}`}
+                                    placeholder="비밀번호 확인"
+                                    value={formData.passwordConfirm}
+                                    onChange={(e) => setFormData({ ...formData, passwordConfirm: e.target.value })}
+                                />
+                                {formData.passwordConfirm && (
+                                    <button type="button" tabIndex={-1} className="clear-btn" onClick={() => handleClear('passwordConfirm')}>✕</button>
+                                )}
+                            </div>
                             {formData.passwordConfirm && formData.password !== formData.passwordConfirm && (
                                 <p className="validation-msg error">비밀번호가 일치하지 않습니다.</p>
                             )}
@@ -619,7 +628,7 @@ export default function SignupWizard() {
                                 autoFocus
                             />
                             {formData.name && (
-                                <button className="clear-btn" onClick={() => handleClear('name')}>✕</button>
+                                <button type="button" tabIndex={-1} className="clear-btn" onClick={() => handleClear('name')}>✕</button>
                             )}
                         </div>
                         {formData.name && !status.nameValid && (

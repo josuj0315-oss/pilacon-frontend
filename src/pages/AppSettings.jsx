@@ -2,9 +2,11 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePilaCon } from '../store/pilaconStore';
 import { ICONS } from '../constants/icons';
+import useDevice from '../hooks/useDevice';
 
 export default function AppSettings() {
     const navigate = useNavigate();
+    const { isDesktop } = useDevice();
     const { logout } = usePilaCon();
 
     const settingGroups = [
@@ -41,7 +43,15 @@ export default function AppSettings() {
                 <div style={{ width: 44 }} />
             </header>
 
-            <main className="settings-content">
+            <main className={`settings-content ${isDesktop ? 'desktop' : ''}`}>
+                {isDesktop && (
+                    <aside className="settings-side-nav">
+                        <button className="side-item" onClick={() => navigate('/mypage/notification-settings')}>알림 설정</button>
+                        <button className="side-item" onClick={() => navigate('/mypage/notification-settings/custom')}>게시물 맞춤 설정</button>
+                        <button className="side-item active">앱 설정</button>
+                    </aside>
+                )}
+                <section className="settings-main">
                 {settingGroups.map((group, gIdx) => (
                     <div key={gIdx} className="settings-group">
                         <h3 className="group-title">{group.title}</h3>
@@ -71,6 +81,7 @@ export default function AppSettings() {
                     <span>앱 버전</span>
                     <span className="version-text">1.0.0</span>
                 </div>
+                </section>
             </main>
 
             <style>{`
@@ -109,6 +120,9 @@ export default function AppSettings() {
                 }
                 .settings-content {
                     padding: 20px;
+                }
+                .settings-main {
+                    min-width: 0;
                 }
                 .settings-group {
                     margin-bottom: 24px;
@@ -164,6 +178,44 @@ export default function AppSettings() {
                 .version-text {
                     font-weight: 700;
                     color: #cbd5e1;
+                }
+                @media (min-width: 1200px) {
+                    .settings-content.desktop {
+                        max-width: 1200px;
+                        margin: 0 auto;
+                        display: grid;
+                        grid-template-columns: 240px minmax(0, 1fr);
+                        gap: 16px;
+                        align-items: start;
+                    }
+                    .settings-side-nav {
+                        background: #fff;
+                        border: 1px solid #e2e8f0;
+                        border-radius: 14px;
+                        padding: 10px;
+                        position: sticky;
+                        top: 84px;
+                        display: grid;
+                        gap: 8px;
+                    }
+                    .side-item {
+                        width: 100%;
+                        height: 40px;
+                        border-radius: 10px;
+                        border: 1px solid #eef2f7;
+                        background: #fff;
+                        color: #475569;
+                        font-size: 13px;
+                        font-weight: 700;
+                        cursor: pointer;
+                        text-align: left;
+                        padding: 0 12px;
+                    }
+                    .side-item.active {
+                        background: #eef2ff;
+                        color: #4f46e5;
+                        border-color: #c7d2fe;
+                    }
                 }
             `}</style>
         </div>

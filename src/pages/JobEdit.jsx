@@ -6,6 +6,7 @@ import { usePilaCon } from "../store/pilaconStore";
 import { useCategory } from "../context/CategoryContext";
 import { ICONS } from "../constants/icons";
 import axios from "axios";
+import useDevice from "../hooks/useDevice";
 
 const WORK_TYPES = [
     { id: "sub", label: "대타/급구" },
@@ -35,6 +36,7 @@ const SAVED_CENTERS = [
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 
 export default function JobEdit() {
+    const { isDesktop } = useDevice();
     const { id } = useParams();
     const navigate = useNavigate();
     const { updateJob, user, showToast } = usePilaCon();
@@ -228,6 +230,12 @@ export default function JobEdit() {
 
     const displayDate = newPost.workDate ? newPost.workDate.replace(/-/g, '.') : "";
     const displayEndDate = newPost.workEndDate ? newPost.workEndDate.replace(/-/g, '.') : "";
+    const workTypeLabel = WORK_TYPES.find((t) => t.id === newPost.type)?.label || "-";
+    const summaryDateText = newPost.isToday
+        ? `${displayDate || "오늘"} (당일)`
+        : (displayDate && displayEndDate ? `${displayDate} ~ ${displayEndDate}` : "미입력");
+    const summaryTimeText = `${TIME_OPTIONS.find((o) => o.id === newPost.workTime)?.label || "-"}${newPost.workTimeNote ? ` (${newPost.workTimeNote})` : ""}`;
+    const summaryPayText = newPost.pay ? `${Number(String(newPost.pay).replace(/\D/g, "")).toLocaleString()}원` : "미입력";
 
     // 당일 체크박스 핸들러
     const handleTodayChange = (checked) => {
@@ -281,6 +289,7 @@ export default function JobEdit() {
             </header>
 
             <div className="write-scroll-area">
+                <div className={`write-desktop-layout ${isDesktop ? "desktop" : ""}`}>
                 <form className="write-form" onSubmit={handleSubmit}>
                     <div className="form-section">
                         <div className="field">
@@ -550,6 +559,24 @@ export default function JobEdit() {
                         </div>
                     </div>
                 </form>
+
+                {isDesktop && (
+                    <aside className="write-side-summary">
+                        <h3>수정 미리보기</h3>
+                        <div className="summary-title">{newPost.title || "공고 제목을 입력해주세요"}</div>
+                        <div className="summary-list">
+                            <div><span>직군</span><strong>{newPost.category || "-"}</strong></div>
+                            <div><span>근무 형태</span><strong>{workTypeLabel}</strong></div>
+                            <div><span>근무 날짜</span><strong>{summaryDateText}</strong></div>
+                            <div><span>근무 시간</span><strong>{summaryTimeText}</strong></div>
+                            <div><span>근무 지역</span><strong>{newPost.location || newPost.address || "미입력"}</strong></div>
+                            <div><span>급여</span><strong>{summaryPayText}</strong></div>
+                            <div><span>센터명</span><strong>{newPost.studio || "미입력"}</strong></div>
+                        </div>
+                        <p className="summary-note">수정값이 우측 패널에 즉시 반영됩니다.</p>
+                    </aside>
+                )}
+                </div>
             </div>
 
             <div className="write-cta-area">

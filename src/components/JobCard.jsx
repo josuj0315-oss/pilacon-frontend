@@ -1,5 +1,6 @@
-import { ICONS, ICON_CONFIG } from "../constants/icons";
+import { ICONS } from "../constants/icons";
 import { formatPayKRW } from "../utils/format";
+import useDevice from "../hooks/useDevice";
 
 // type → 한글
 const TYPE_LABEL = {
@@ -16,6 +17,7 @@ const TYPE_CLASS = {
 };
 
 export default function JobCard({ job, onClick, showFavorite, isFavorited, onToggleFavorite }) {
+  const { isDesktop } = useDevice();
   const status = (job.status || "active").toLowerCase();
   const isClosed = status === "closed";
 
@@ -39,6 +41,58 @@ export default function JobCard({ job, onClick, showFavorite, isFavorited, onTog
   const daysSuffix = (job.daysOfWeek && job.daysOfWeek.length > 0)
     ? `(${job.daysOfWeek.join(', ')})`
     : "";
+
+  if (isDesktop) {
+    return (
+      <div
+        className={`job-row-item ${isClosed ? "is-closed" : ""}`}
+        onClick={onClick}
+      >
+        <div className="job-row-left">
+          <div className="job-row-badges">
+            {isClosed ? (
+              <span className="tag closed" style={{ background: '#94a3b8', color: '#fff' }}>
+                모집완료
+              </span>
+            ) : (
+              <span className={`tag ${typeClass}`}>{typeLabel}</span>
+            )}
+            {locationText && <span className="tag location">{locationText.split(" ").slice(0, 2).join(" ")}</span>}
+          </div>
+          <h3 className="job-row-title">{job.title}</h3>
+          <p className="job-row-sub">{studioName || "센터 정보 없음"}</p>
+          <div className="job-row-meta">
+            <span>{dateRange} {daysSuffix}</span>
+            <span>·</span>
+            <span>{timeText || "협의"}</span>
+          </div>
+        </div>
+
+        <div className="job-row-right">
+          <div className="job-row-pay">{formatPayKRW(job.pay)}</div>
+          <button className="job-row-detail-btn" onClick={(e) => { e.stopPropagation(); onClick?.(); }}>
+            상세보기
+          </button>
+          {showFavorite && (
+            <button
+              className="job-row-fav-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleFavorite?.(job.id);
+              }}
+            >
+              <ICONS.star
+                size={18}
+                color={isFavorited ? "#fbbf24" : "#cbd5e1"}
+                fill={isFavorited ? "#fbbf24" : "none"}
+                strokeWidth={2.5}
+              />
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
