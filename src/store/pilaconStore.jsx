@@ -808,6 +808,111 @@ export function PilaConProvider({ children }) {
     }
   };
 
+  const reportJob = async (reportData) => {
+    if (!user) return { ok: false, error: 'Not logged in' };
+    try {
+      const response = await axios.post(`${API_BASE_URL}/reports`, reportData);
+      return { ok: true, data: response.data };
+    } catch (error) {
+      console.error('Failed to report job:', error);
+      return { 
+        ok: false, 
+        error: error.response?.data?.message || '신고 제출에 실패했습니다.' 
+      };
+    }
+  };
+
+  const submitInquiry = async (data) => {
+    if (!user) return { ok: false, error: '로그인이 필요합니다.' };
+    try {
+      const res = await axios.post(`${API_BASE_URL}/inquiries`, data);
+      return { ok: true, data: res.data };
+    } catch (error) {
+      console.error('Failed to submit inquiry:', error);
+      return { ok: false, error: error.response?.data?.message || '문의 제출에 실패했습니다.' };
+    }
+  };
+
+  const fetchNotices = async () => {
+    try {
+      const res = await axios.get(`${API_BASE_URL}/notices`);
+      return res.data;
+    } catch (error) {
+      console.error('Failed to fetch notices:', error);
+      return [];
+    }
+  };
+
+  const fetchNotice = async (id) => {
+    try {
+      const res = await axios.get(`${API_BASE_URL}/notices/${id}`);
+      return res.data;
+    } catch (error) {
+      console.error('Failed to fetch notice:', error);
+      throw error;
+    }
+  };
+
+  const createNotice = async (noticeData) => {
+    try {
+      const res = await axios.post(`${API_BASE_URL}/notices`, noticeData);
+      return { ok: true, data: res.data };
+    } catch (error) {
+      console.error('Failed to create notice:', error);
+      return { ok: false, error: error.response?.data?.message || '공지사항 작성에 실패했습니다.' };
+    }
+  };
+
+  const getAdminInquiries = async () => {
+    try {
+      const res = await axios.get(`${API_BASE_URL}/admin/inquiries`);
+      return res.data;
+    } catch (error) {
+      console.error('Failed to fetch admin inquiries:', error);
+      throw error;
+    }
+  };
+
+  const getAdminInquiry = async (id) => {
+    try {
+      const res = await axios.get(`${API_BASE_URL}/admin/inquiries/${id}`);
+      return res.data;
+    } catch (error) {
+      console.error('Failed to fetch admin inquiry:', error);
+      throw error;
+    }
+  };
+
+  const getAdminReports = async (params) => {
+    try {
+      const res = await axios.get(`${API_BASE_URL}/admin/reports`, { params });
+      return res.data;
+    } catch (error) {
+      console.error('Failed to fetch admin reports:', error);
+      throw error;
+    }
+  };
+
+  const getAdminReportDetail = async (id) => {
+    try {
+      const res = await axios.get(`${API_BASE_URL}/admin/reports/${id}`);
+      return res.data;
+    } catch (error) {
+      console.error('Failed to fetch admin report detail:', error);
+      throw error;
+    }
+  };
+
+  const updateAdminReport = async (id, updateData) => {
+    try {
+      const res = await axios.patch(`${API_BASE_URL}/admin/reports/${id}`, updateData);
+      return { ok: true, data: res.data };
+    } catch (error) {
+      console.error('Failed to update admin report:', error);
+      return { ok: false, error: error.response?.data?.message || '처리에 실패했습니다.' };
+    }
+  };
+
   const applyToJob = async (jobId, instructorProfileId, message) => {
     if (!user) return { ok: false, reason: 'unauthorized', message: '로그인이 필요합니다.' };
 
@@ -1196,6 +1301,7 @@ export function PilaConProvider({ children }) {
       toggleFavorite,
       createJob,
       updateJob,
+      reportJob,
       deleteJob,
       closeJob,
       applyToJob,
@@ -1230,6 +1336,12 @@ export function PilaConProvider({ children }) {
       uploadFile,
       uploadResume,
       uploadChatImage,
+      submitInquiry,
+      fetchNotices,
+      fetchNotice,
+      createNotice,
+      getAdminInquiries,
+      getAdminInquiry,
       loginWithToken,
       logout,
       resetLocal,
@@ -1272,8 +1384,11 @@ export function PilaConProvider({ children }) {
       fullError,
       showFullError,
       closeFullError,
+      getAdminReports,
+      getAdminReportDetail,
+      updateAdminReport,
     }),
-    [jobs, myJobs, appliedList, applications, refreshApplications, favorites, loading, isAuthLoading, user, profiles, notifications, unreadCount, unreadMessageCount, lastChatMessage, notificationSettings, recentlyViewedJobs, blockedUsers, mutedChatRooms, leftChatRooms, toasts, globalModal, fullError, applyToJob, closeJob, createJob, deleteJob, deleteProfile, isFavorited, localLogin, loginWithToken, saveProfile, setPrimaryProfile, toggleFavorite, updateJob, updateUser, uploadChatImage, uploadFile, uploadResume, requestEmailVerification, verifyEmailCode]
+    [jobs, myJobs, appliedList, applications, refreshApplications, favorites, loading, isAuthLoading, user, profiles, notifications, unreadCount, unreadMessageCount, lastChatMessage, notificationSettings, recentlyViewedJobs, blockedUsers, mutedChatRooms, leftChatRooms, toasts, globalModal, fullError, applyToJob, closeJob, createJob, deleteJob, deleteProfile, isFavorited, localLogin, loginWithToken, saveProfile, setPrimaryProfile, toggleFavorite, updateJob, updateUser, uploadChatImage, uploadFile, uploadResume, requestEmailVerification, verifyEmailCode, reportJob, submitInquiry, fetchNotices, fetchNotice, createNotice, getAdminInquiries, getAdminInquiry, getAdminReports, getAdminReportDetail, updateAdminReport]
   );
 
   return <PilaConContext.Provider value={value}>{children}</PilaConContext.Provider>;

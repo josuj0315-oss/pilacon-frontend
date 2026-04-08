@@ -21,6 +21,8 @@ import { formatPayKRW } from "../utils/format";
 import ApplyConfirmSheet from "../components/ApplyConfirmSheet";
 import axios from "axios";
 import useDevice from "../hooks/useDevice";
+import ReportModal from "../components/ReportModal";
+import { Flag } from "lucide-react";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 
@@ -34,6 +36,7 @@ export default function JobPostDetail() {
   const [loading, setLoading] = useState(true);
   const [showApplySheet, setShowApplySheet] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
 
   // 이미 지원했는지 확인 (취소된 경우 제외)
   const existingApplication = (applications || []).find(
@@ -165,6 +168,25 @@ export default function JobPostDetail() {
     }
   };
 
+  const handleReport = () => {
+    setShowMenu(false);
+    if (!user) {
+      showToast("로그인 후 이용 가능합니다.", "info");
+      navigate("/login");
+      return;
+    }
+    setShowReportModal(true);
+  };
+
+  const menuItems = [
+    ...(isOwner ? [
+      { label: "수정하기", icon: Edit, onClick: () => { setShowMenu(false); handleEdit(); } },
+      { label: "삭제하기", icon: Trash2, onClick: () => { setShowMenu(false); handleDelete(); }, className: "text-rose-500 hover:bg-rose-50" }
+    ] : [
+      { label: "게시물 신고하기", icon: Flag, onClick: handleReport, className: "text-slate-600 hover:text-rose-500 hover:bg-rose-50" }
+    ])
+  ];
+
   const renderActionButton = (desktop = false) => {
     if (isOwner) {
       return (
@@ -247,45 +269,33 @@ export default function JobPostDetail() {
                 className={`transition-all duration-300 ${favorited ? "scale-110 fill-[#fbbf24] text-[#fbbf24]" : "text-[#1e293b]"}`}
               />
             </button>
-            {isOwner && (
-              <div className="relative">
-                <button
-                  className="p-2 hover:bg-gray-50 rounded-full transition-colors"
-                  onClick={() => setShowMenu(!showMenu)}
-                  aria-label="더보기"
-                >
-                  <MoreVertical size={22} color="#1e293b" />
-                </button>
+            <div className="relative">
+              <button
+                className="p-2 hover:bg-gray-50 rounded-full transition-colors"
+                onClick={() => setShowMenu(!showMenu)}
+                aria-label="더보기"
+              >
+                <MoreVertical size={22} color="#1e293b" />
+              </button>
 
-                {showMenu && (
-                  <>
-                    <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)}></div>
-                    <div className="absolute right-0 mt-2 w-36 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-50 overflow-hidden animate-in fade-in zoom-in duration-200 origin-top-right">
+              {showMenu && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)}></div>
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-50 overflow-hidden animate-in fade-in zoom-in duration-200 origin-top-right">
+                    {menuItems.map((item, idx) => (
                       <button
-                        onClick={() => {
-                          setShowMenu(false);
-                          handleEdit();
-                        }}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-[14px] font-bold text-gray-700 hover:bg-indigo-50 hover:text-[#5b5ff5] transition-colors"
+                        key={idx}
+                        onClick={item.onClick}
+                        className={`w-full flex items-center gap-3 px-4 py-3 text-[14px] font-bold transition-all ${item.className || "text-gray-700 hover:bg-indigo-50 hover:text-[#5b5ff5]"}`}
                       >
-                        <Edit size={16} />
-                        수정하기
+                        <item.icon size={16} />
+                        {item.label}
                       </button>
-                      <button
-                        onClick={() => {
-                          setShowMenu(false);
-                          handleDelete();
-                        }}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-[14px] font-bold text-rose-500 hover:bg-rose-50 transition-colors"
-                      >
-                        <Trash2 size={16} />
-                        삭제하기
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </header>
@@ -352,46 +362,34 @@ export default function JobPostDetail() {
                         className={`transition-all duration-300 ${favorited ? "scale-110 fill-[#fbbf24] text-[#fbbf24]" : "text-[#1e293b]"}`}
                       />
                     </button>
-                    {isOwner && (
-                      <div className="relative">
-                        <button
-                          className="p-2 hover:bg-gray-50 rounded-full transition-colors"
-                          onClick={() => setShowMenu(!showMenu)}
-                          aria-label="더보기"
-                          type="button"
-                        >
-                          <MoreVertical size={22} color="#1e293b" />
-                        </button>
+                    <div className="relative">
+                      <button
+                        className="p-2 hover:bg-gray-50 rounded-full transition-colors"
+                        onClick={() => setShowMenu(!showMenu)}
+                        aria-label="더보기"
+                        type="button"
+                      >
+                        <MoreVertical size={22} color="#1e293b" />
+                      </button>
 
-                        {showMenu && (
-                          <>
-                            <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)}></div>
-                            <div className="absolute right-0 mt-2 w-36 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-50 overflow-hidden animate-in fade-in zoom-in duration-200 origin-top-right">
+                      {showMenu && (
+                        <>
+                          <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)}></div>
+                          <div className="absolute right-0 mt-2 w-48 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-50 overflow-hidden animate-in fade-in zoom-in duration-200 origin-top-right">
+                            {menuItems.map((item, idx) => (
                               <button
-                                onClick={() => {
-                                  setShowMenu(false);
-                                  handleEdit();
-                                }}
-                                className="w-full flex items-center gap-3 px-4 py-3 text-[14px] font-bold text-gray-700 hover:bg-indigo-50 hover:text-[#5b5ff5] transition-colors"
+                                key={idx}
+                                onClick={item.onClick}
+                                className={`w-full flex items-center gap-3 px-4 py-3 text-[14px] font-bold transition-all ${item.className || "text-gray-700 hover:bg-indigo-50 hover:text-[#5b5ff5]"}`}
                               >
-                                <Edit size={16} />
-                                수정하기
+                                <item.icon size={16} />
+                                {item.label}
                               </button>
-                              <button
-                                onClick={() => {
-                                  setShowMenu(false);
-                                  handleDelete();
-                                }}
-                                className="w-full flex items-center gap-3 px-4 py-3 text-[14px] font-bold text-rose-500 hover:bg-rose-50 transition-colors"
-                              >
-                                <Trash2 size={16} />
-                                삭제하기
-                              </button>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    )}
+                            ))}
+                          </div>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
               </section>
@@ -631,6 +629,14 @@ export default function JobPostDetail() {
             setShowApplySheet(false);
             navigate("/activity?tab=applied");
           }}
+        />
+      )}
+
+      {showReportModal && (
+        <ReportModal
+          targetId={job.id}
+          targetTitle={job.title}
+          onClose={() => setShowReportModal(false)}
         />
       )}
 

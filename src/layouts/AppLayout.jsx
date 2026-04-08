@@ -7,6 +7,8 @@ import { ICONS, ICON_CONFIG } from "../constants/icons";
 import useDevice from "../hooks/useDevice";
 import MessageNotificationBanner from "../components/MessageNotificationBanner";
 
+import PCFooter from "./components/PCFooter";
+
 export default function AppLayout() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -18,6 +20,7 @@ export default function AppLayout() {
   const searchParams = new URLSearchParams(location.search);
   const view = searchParams.get("view");
   const isDetailView = view === "appliedDetail" || view === "jobDetail";
+  const hideMobileHeader = !isDesktop && location.pathname.startsWith("/jobs/");
 
   // ✅ 하단탭 숨길 화면이 있다면 여기서 관리 (예: 상세페이지)
   const hideNav =
@@ -30,7 +33,7 @@ export default function AppLayout() {
   return (
     <div className="app-layout">
       <MessageNotificationBanner />
-      {!isDesktop && user && (
+      {!hideMobileHeader && !isDesktop && user && (
         <div id="userBadge" className="user-badge">
           <div className="header-left">
             {isHome ? (
@@ -82,6 +85,7 @@ export default function AppLayout() {
 
       <div className="app-content">
         <Outlet />
+        <PCFooter />
       </div>
 
       {!hideNav && <BottomNav />}
@@ -122,10 +126,8 @@ export default function AppLayout() {
           letter-spacing: -0.03em;
         }
         .page-title-mini {
-          font-size: 24px;
-          font-weight: 900;
-          color: #0f172a;
-          letter-spacing: -0.03em;
+          display: inline-flex;
+          align-items: center;
         }
         .category-menu-mini {
           position: absolute;

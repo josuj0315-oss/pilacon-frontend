@@ -2258,21 +2258,28 @@ body {
     border: none;
     background: transparent;
     padding: 0;
+    cursor: pointer;
+    margin-right: 0;
+  }
+
+.fitjob-wordmark {
+  display: inline-flex;
+  align-items: center;
     font-family: "Pretendard", "SUIT", "Noto Sans KR", "Inter", -apple-system, "Segoe UI", sans-serif !important;
     font-size: 28px;
     font-weight: 900;
     line-height: 1;
     color: #1e1b4b;
-    letter-spacing: -0.045em;
-    cursor: pointer;
-    margin-right: 0;
-  }
+  letter-spacing: -0.045em;
+}
 
-  .pc-logo-fit {
+  .pc-logo-fit,
+  .fitjob-wordmark-fit {
     color: #5c5fed;
   }
 
-  .pc-logo-job {
+  .pc-logo-job,
+  .fitjob-wordmark-job {
     color: #1e1b4b;
   }
 

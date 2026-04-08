@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { ICONS } from "../../constants/icons";
 import { usePilaCon } from "../../store/pilaconStore";
 import { resetAppScrollPosition } from "../../utils/scroll";
+import FitJobLogo from "../../components/FitJobLogo";
 
 const navItems = [
   { to: "/", label: "채용정보", requiresAuth: false },
@@ -89,8 +90,7 @@ export default function PCGlobalHeader({
               }}
               aria-label="핏잡 홈으로 이동"
             >
-              <span className="pc-logo-fit">FIT</span>
-              <span className="pc-logo-job">JOB</span>
+              <FitJobLogo />
             </button>
             <div className="pc-global-search">
               <ICONS.search size={15} color="#94a3b8" />
