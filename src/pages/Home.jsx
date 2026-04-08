@@ -46,21 +46,42 @@ export default function Home() {
   useEffect(() => {
     if (!isDesktop) return;
 
-    const jobParam = desktopSearchParams.get("job");
-    const typeParam = desktopSearchParams.get("type");
+    // URL -> Local State 동기화 (Source of Truth: URL)
+    const jobParam = desktopSearchParams.get("job") || "필라테스";
+    const typeParam = desktopSearchParams.get("type") || "all";
     const regionParam = desktopSearchParams.get("region");
     const otherParam = desktopSearchParams.get("other");
     const pageParam = Number(desktopSearchParams.get("page") || "1");
 
-    if (jobParam && jobParam !== category) {
+    // 1. 직군 (Category)
+    if (jobParam !== category) {
       setCategory(jobParam);
     }
 
-    setWorkType(["all", "sub", "short", "regular"].includes(typeParam) ? typeParam : "all");
-    setSelectedRegions(regionParam ? regionParam.split(",").filter(Boolean) : ["전국"]);
-    setSelectedOtherTypes(otherParam ? otherParam.split(",").filter(Boolean) : []);
-    setCurrentPage(pageParam > 0 ? pageParam : 1);
-  }, [isDesktop, desktopSearchParams, category, setCategory]);
+    // 2. 근무 형태 (WorkType)
+    const newWorkType = ["all", "sub", "short", "regular"].includes(typeParam) ? typeParam : "all";
+    if (newWorkType !== workType) {
+      setWorkType(newWorkType);
+    }
+
+    // 3. 지역 (Regions)
+    const newRegions = regionParam ? regionParam.split(",").filter(Boolean) : ["전국"];
+    if (JSON.stringify(newRegions) !== JSON.stringify(selectedRegions)) {
+      setSelectedRegions(newRegions);
+    }
+
+    // 4. 기타 종목 (OtherTypes)
+    const newOtherTypes = otherParam ? otherParam.split(",").filter(Boolean) : [];
+    if (JSON.stringify(newOtherTypes) !== JSON.stringify(selectedOtherTypes)) {
+      setSelectedOtherTypes(newOtherTypes);
+    }
+
+    // 5. 페이지 (Page)
+    const newPage = pageParam > 0 ? pageParam : 1;
+    if (newPage !== currentPage) {
+      setCurrentPage(newPage);
+    }
+  }, [isDesktop, desktopSearchParams]); // 의존성 단순화: URL 변화에만 반응
 
   const filteredJobs = useMemo(() => {
     const list = jobs ?? [];
@@ -129,51 +150,78 @@ export default function Home() {
     return Math.floor(filteredJobs.length / 2);
   }, [filteredJobs]);
 
-  const handleToggleOtherType = (typeId) => {
-    setSelectedOtherTypes((prev) =>
-      prev.includes(typeId) ? prev.filter((id) => id !== typeId) : [...prev, typeId]
-    );
-  };
-
-  useEffect(() => {
+  // State -> URL 동기화 (중앙 집중 관리)
+  const updateURLParams = (updates) => {
     if (!isDesktop) return;
     const nextParams = new URLSearchParams(desktopSearchParams);
 
-    if (category) nextParams.set("job", category);
-    else nextParams.delete("job");
-
-    if (workType && workType !== "all") nextParams.set("type", workType);
-    else nextParams.delete("type");
-
-    if (selectedRegions.length > 0 && !(selectedRegions.length === 1 && selectedRegions[0] === "전국")) {
-      nextParams.set("region", selectedRegions.join(","));
-    } else {
-      nextParams.delete("region");
+    // 1. 직군
+    if (updates.category !== undefined) {
+      if (!updates.category || updates.category === "필라테스") nextParams.delete("job");
+      else nextParams.set("job", updates.category);
     }
 
-    if (category === "기타" && selectedOtherTypes.length > 0) {
-      nextParams.set("other", selectedOtherTypes.join(","));
-    } else {
-      nextParams.delete("other");
+    // 2. 근무형태
+    if (updates.workType !== undefined) {
+      if (!updates.workType || updates.workType === "all") nextParams.delete("type");
+      else nextParams.set("type", updates.workType);
     }
 
-    if (currentPage > 1) nextParams.set("page", String(currentPage));
-    else nextParams.delete("page");
+    // 3. 지역
+    if (updates.selectedRegions !== undefined) {
+      const isDefault = !updates.selectedRegions || updates.selectedRegions.length === 0 || 
+                       (updates.selectedRegions.length === 1 && updates.selectedRegions[0] === "전국");
+      if (isDefault) nextParams.delete("region");
+      else nextParams.set("region", updates.selectedRegions.join(","));
+    }
 
-    if (nextParams.toString() !== desktopSearchParams.toString()) {
+    // 4. 기타 종목
+    if (updates.selectedOtherTypes !== undefined) {
+      if (!updates.selectedOtherTypes || updates.selectedOtherTypes.length === 0) nextParams.delete("other");
+      else nextParams.set("other", updates.selectedOtherTypes.join(","));
+    }
+
+    // 5. 페이지
+    if (updates.currentPage !== undefined) {
+      if (updates.currentPage <= 1) nextParams.delete("page");
+      else nextParams.set("page", String(updates.currentPage));
+    }
+
+    const currentQuery = desktopSearchParams.toString();
+    const nextQuery = nextParams.toString();
+
+    if (nextQuery !== currentQuery) {
       setDesktopSearchParams(nextParams, { replace: true });
     }
-  }, [isDesktop, category, workType, selectedRegions, selectedOtherTypes, currentPage, desktopSearchParams, setDesktopSearchParams]);
+  };
 
-  useEffect(() => {
-    if (!isDesktop) return;
-    const totalPages = Math.max(1, Math.ceil(filteredJobs.length / PAGE_SIZE));
-    if (currentPage > totalPages) {
-      setCurrentPage(totalPages);
-    }
-  }, [filteredJobs.length, currentPage, isDesktop]);
+  const handleCategoryChange = (nextCategory) => {
+    // URL을 먼저 업데이트하고, 상태는 useEffect에서 따라오도록 함
+    updateURLParams({ category: nextCategory, currentPage: 1 });
+    // 전역 컨텍스트만 우선 업데이트
+    setCategory(nextCategory);
+  };
+
+  const handleWorkTypeChange = (nextType) => {
+    updateURLParams({ workType: nextType, currentPage: 1 });
+    setWorkType(nextType);
+  };
+
+  const handleRegionApply = (regions) => {
+    updateURLParams({ selectedRegions: regions, currentPage: 1 });
+    setSelectedRegions(regions);
+  };
+
+  const handleOtherTypeToggle = (typeId) => {
+    const nextOtherTypes = selectedOtherTypes.includes(typeId)
+      ? selectedOtherTypes.filter((id) => id !== typeId)
+      : [...selectedOtherTypes, typeId];
+    updateURLParams({ selectedOtherTypes: nextOtherTypes, currentPage: 1 });
+    setSelectedOtherTypes(nextOtherTypes);
+  };
 
   const totalPages = Math.max(1, Math.ceil(filteredJobs.length / PAGE_SIZE));
+
   const paginatedJobs = useMemo(() => {
     if (!isDesktop) return filteredJobs;
     const start = (currentPage - 1) * PAGE_SIZE;
@@ -181,33 +229,15 @@ export default function Home() {
   }, [filteredJobs, currentPage, isDesktop]);
 
   const scrollToListTop = () => {
-    window.scrollTo({ top: Number.parseInt(getComputedStyle(document.documentElement).getPropertyValue("--pc-global-header-height") || "116", 10), behavior: "smooth" });
+    const headerHeight = Number.parseInt(getComputedStyle(document.documentElement).getPropertyValue("--pc-global-header-height") || "116", 10);
+    window.scrollTo({ top: headerHeight, behavior: "smooth" });
   };
 
   const changePage = (page) => {
     const safePage = Math.min(Math.max(1, page), totalPages);
+    updateURLParams({ currentPage: safePage });
     setCurrentPage(safePage);
     scrollToListTop();
-  };
-
-  const handleCategoryChange = (nextCategory) => {
-    setCategory(nextCategory);
-    setCurrentPage(1);
-  };
-
-  const handleWorkTypeChange = (nextType) => {
-    setWorkType(nextType);
-    setCurrentPage(1);
-  };
-
-  const handleOtherTypeToggle = (typeId) => {
-    handleToggleOtherType(typeId);
-    setCurrentPage(1);
-  };
-
-  const handleRegionApply = (regions) => {
-    setSelectedRegions(regions);
-    setCurrentPage(1);
   };
 
   const paginationItems = useMemo(() => {
@@ -257,29 +287,29 @@ export default function Home() {
             </span>
           </button>
 
-          {category !== "기타" ? (
+                  {category !== "기타" ? (
             <>
               <button
                 className={`filter ${workType === "all" ? "active" : ""}`}
-                onClick={() => setWorkType("all")}
+                onClick={() => handleWorkTypeChange("all")}
               >
                 전체
               </button>
               <button
                 className={`filter ${workType === "sub" ? "active" : ""}`}
-                onClick={() => setWorkType("sub")}
+                onClick={() => handleWorkTypeChange("sub")}
               >
                 대타·급구
               </button>
               <button
                 className={`filter ${workType === "short" ? "active" : ""}`}
-                onClick={() => setWorkType("short")}
+                onClick={() => handleWorkTypeChange("short")}
               >
                 단기
               </button>
               <button
                 className={`filter ${workType === "regular" ? "active" : ""}`}
-                onClick={() => setWorkType("regular")}
+                onClick={() => handleWorkTypeChange("regular")}
               >
                 정규직
               </button>
@@ -290,7 +320,7 @@ export default function Home() {
                 <button
                   key={type.id}
                   className={`filter ${selectedOtherTypes.includes(type.id) ? "active" : ""}`}
-                  onClick={() => handleToggleOtherType(type.id)}
+                  onClick={() => handleOtherTypeToggle(type.id)}
                 >
                   {type.label}
                 </button>

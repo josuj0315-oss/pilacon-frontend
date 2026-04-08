@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 
 // 응답 인터셉터용 변수들
@@ -68,7 +68,9 @@ axios.interceptors.response.use(
         // 완전 로그아웃 처리
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
-        window.location.href = '/login';
+        if (window.location.pathname !== '/login') {
+          window.location.href = '/login';
+        }
         return Promise.reject(error);
       }
 
@@ -91,7 +93,9 @@ axios.interceptors.response.use(
         isRefreshing = false;
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
-        window.location.href = '/login';
+        if (window.location.pathname !== '/login') {
+          window.location.href = '/login';
+        }
         return Promise.reject(err);
       }
     }
@@ -261,6 +265,8 @@ export function PilaConProvider({ children }) {
     const stored = readJSON(LS.applications, []);
     return Array.isArray(stored) ? stored : [];
   });
+
+  const sseTimerRef = useRef(null);
 
   const [toasts, setToasts] = useState([]);
   const [globalModal, setGlobalModal] = useState(null);
@@ -1093,13 +1099,15 @@ export function PilaConProvider({ children }) {
       eventSource.onerror = (e) => {
         console.error("SSE Error:", e);
         eventSource.close();
-        setTimeout(connectSSE, 5000); // 5초 후 재연결
+        if (sseTimerRef.current) clearTimeout(sseTimerRef.current);
+        sseTimerRef.current = setTimeout(connectSSE, 5000); // 5초 후 재연결
       };
     };
 
     connectSSE();
     return () => {
       if (eventSource) eventSource.close();
+      if (sseTimerRef.current) clearTimeout(sseTimerRef.current);
     };
   }, [user, mutedChatRooms, leftChatRooms, notificationSettings.message.on]);
 
