@@ -6,8 +6,9 @@ import { useCategory } from "../context/CategoryContext";
 import { ICONS, ICON_CONFIG } from "../constants/icons";
 import useDevice from "../hooks/useDevice";
 import MessageNotificationBanner from "../components/MessageNotificationBanner";
-
+import FitJobLogo from "../components/FitJobLogo";
 import PCFooter from "./components/PCFooter";
+
 
 export default function AppLayout() {
   const location = useLocation();
@@ -68,7 +69,7 @@ export default function AppLayout() {
               <div className="page-title-mini">
                 {location.pathname === "/chat" ? "채팅" : 
                  location.pathname === "/activity" ? "내 활동" :
-                 location.pathname === "/mypage" ? "내 정보" : "Pilacon"}
+                 location.pathname === "/mypage" ? "내 정보" : <FitJobLogo height="22px" />}
               </div>
             )}
           </div>

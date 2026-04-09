@@ -1,8 +1,10 @@
-export default function FitJobLogo({ className = "" }) {
+export default function FitJobLogo({ className = "", height = "32px" }) {
   return (
-    <span className={`fitjob-wordmark ${className}`.trim()} aria-label="FITJOB">
-      <span className="fitjob-wordmark-fit">FIT</span>
-      <span className="fitjob-wordmark-job">JOB</span>
-    </span>
+    <img 
+      src="/logo.png" 
+      alt="FITJOB" 
+      className={className} 
+      style={{ height, width: "auto" }} 
+    />
   );
 }

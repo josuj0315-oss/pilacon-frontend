@@ -1,5 +1,7 @@
 import { Facebook, Instagram } from "lucide-react";
 import { Link } from "react-router-dom";
+import FitJobLogo from "../../components/FitJobLogo";
+
 
 export default function PCFooter() {
   return (
@@ -8,8 +10,7 @@ export default function PCFooter() {
         <div className="pc-footer-top">
           <div className="pc-footer-brand">
             <div className="pc-footer-logo" aria-label="FITJOB">
-              <span className="pc-footer-logo-fit">FIT</span>
-              <span className="pc-footer-logo-job">JOB</span>
+              <FitJobLogo height="28px" />
             </div>
             <p className="pc-footer-copy">필라테스/요가 강사를 위한 채용 플랫폼</p>
           </div>
