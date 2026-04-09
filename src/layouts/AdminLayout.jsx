@@ -42,7 +42,7 @@ export default function AdminLayout() {
       {/* Sidebar */}
       <aside className="w-64 bg-white border-r border-slate-200 flex flex-col sticky top-0 h-screen">
         <div className="p-6 border-b border-slate-50 flex items-center gap-3">
-          <FitJobLogo height="32px" />
+          <FitJobLogo height="22px" />
         </div>
 
         <nav className="flex-1 p-4 space-y-1">

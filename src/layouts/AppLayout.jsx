@@ -69,7 +69,7 @@ export default function AppLayout() {
               <div className="page-title-mini">
                 {location.pathname === "/chat" ? "채팅" : 
                  location.pathname === "/activity" ? "내 활동" :
-                 location.pathname === "/mypage" ? "내 정보" : <FitJobLogo height="22px" />}
+                 location.pathname === "/mypage" ? "내 정보" : <FitJobLogo height="15px" />}
               </div>
             )}
           </div>

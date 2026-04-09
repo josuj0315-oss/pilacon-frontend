@@ -184,7 +184,7 @@ export default function Login() {
         <div id="loginScreen" className="login-screen">
             <div className="login-container">
                 <div className="logo-area">
-                    <FitJobLogo height="52px" />
+                    <FitJobLogo height="36px" />
                 </div>
                 <p className="app-description">
                     강사와 센터를 잇는<br />

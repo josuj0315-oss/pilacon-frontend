@@ -1,7 +1,7 @@
-export default function FitJobLogo({ className = "", height = "32px" }) {
+export default function FitJobLogo({ className = "", height = "22px" }) {
   return (
     <img 
-      src="/logo.png" 
+      src="/FitJob2.png" 
       alt="FITJOB" 
       className={className} 
       style={{ height, width: "auto" }} 

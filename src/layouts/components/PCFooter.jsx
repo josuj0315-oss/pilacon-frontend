@@ -10,7 +10,7 @@ export default function PCFooter() {
         <div className="pc-footer-top">
           <div className="pc-footer-brand">
             <div className="pc-footer-logo" aria-label="FITJOB">
-              <FitJobLogo height="28px" />
+              <FitJobLogo height="20px" />
             </div>
             <p className="pc-footer-copy">필라테스/요가 강사를 위한 채용 플랫폼</p>
           </div>
