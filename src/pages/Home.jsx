@@ -33,6 +33,7 @@ export default function Home() {
   const [showCategoryMenu, setShowCategoryMenu] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [workType, setWorkType] = useState("all");
+  const [timeType, setTimeType] = useState("all");
   const [selectedRegions, setSelectedRegions] = useState(["전국"]);
   const [showRegionSheet, setShowRegionSheet] = useState(false);
   const [showFabSheet, setShowFabSheet] = useState(false);
@@ -49,6 +50,7 @@ export default function Home() {
     // URL -> Local State 동기화 (Source of Truth: URL)
     const jobParam = desktopSearchParams.get("job") || "필라테스";
     const typeParam = desktopSearchParams.get("type") || "all";
+    const timeParam = desktopSearchParams.get("time") || "all";
     const regionParam = desktopSearchParams.get("region");
     const otherParam = desktopSearchParams.get("other");
     const pageParam = Number(desktopSearchParams.get("page") || "1");
@@ -62,6 +64,12 @@ export default function Home() {
     const newWorkType = ["all", "sub", "short", "regular"].includes(typeParam) ? typeParam : "all";
     if (newWorkType !== workType) {
       setWorkType(newWorkType);
+    }
+
+    // 3. 시간 (TimeType)
+    const newTimeType = ["all", "morning", "afternoon", "full"].includes(timeParam) ? timeParam : "all";
+    if (newTimeType !== timeType) {
+      setTimeType(newTimeType);
     }
 
     // 3. 지역 (Regions)
@@ -113,6 +121,21 @@ export default function Home() {
           if ((job.type ?? "sub") !== workType) return false;
         }
 
+        // Time Filter
+        if (timeType !== "all") {
+          const jobTimeText = (job.time || job.timeInfo || job.description || "").toLowerCase();
+          const titleText = (job.title || "").toLowerCase();
+          const combined = `${jobTimeText} ${titleText}`;
+
+          if (timeType === "morning") {
+            if (!combined.includes("오전") && !combined.includes("morning")) return false;
+          } else if (timeType === "afternoon") {
+            if (!combined.includes("오후") && !combined.includes("afternoon")) return false;
+          } else if (timeType === "full") {
+            if (!combined.includes("종일") && !combined.includes("전임")) return false;
+          }
+        }
+
         const jobStatus = String(job.status || "active").toLowerCase();
         if (jobStatus === "deleted") return false;
 
@@ -143,7 +166,7 @@ export default function Home() {
         if (aStatus !== "active" && bStatus === "active") return 1;
         return new Date(b.createdAt) - new Date(a.createdAt);
       });
-  }, [jobs, category, effectiveSearchQuery, workType, selectedRegions, selectedOtherTypes]);
+  }, [jobs, category, effectiveSearchQuery, workType, timeType, selectedRegions, selectedOtherTypes]);
 
   const middleAdIndex = useMemo(() => {
     if (!filteredJobs || filteredJobs.length < 4) return -1;
@@ -167,7 +190,13 @@ export default function Home() {
       else nextParams.set("type", updates.workType);
     }
 
-    // 3. 지역
+    // 3. 시간
+    if (updates.timeType !== undefined) {
+      if (!updates.timeType || updates.timeType === "all") nextParams.delete("time");
+      else nextParams.set("time", updates.timeType);
+    }
+
+    // 4. 지역
     if (updates.selectedRegions !== undefined) {
       const isDefault = !updates.selectedRegions || updates.selectedRegions.length === 0 || 
                        (updates.selectedRegions.length === 1 && updates.selectedRegions[0] === "전국");
@@ -175,13 +204,13 @@ export default function Home() {
       else nextParams.set("region", updates.selectedRegions.join(","));
     }
 
-    // 4. 기타 종목
+    // 5. 기타 종목
     if (updates.selectedOtherTypes !== undefined) {
       if (!updates.selectedOtherTypes || updates.selectedOtherTypes.length === 0) nextParams.delete("other");
       else nextParams.set("other", updates.selectedOtherTypes.join(","));
     }
 
-    // 5. 페이지
+    // 6. 페이지
     if (updates.currentPage !== undefined) {
       if (updates.currentPage <= 1) nextParams.delete("page");
       else nextParams.set("page", String(updates.currentPage));
@@ -205,6 +234,11 @@ export default function Home() {
   const handleWorkTypeChange = (nextType) => {
     updateURLParams({ workType: nextType, currentPage: 1 });
     setWorkType(nextType);
+  };
+
+  const handleTimeTypeChange = (nextTime) => {
+    updateURLParams({ timeType: nextTime, currentPage: 1 });
+    setTimeType(nextTime);
   };
 
   const handleRegionApply = (regions) => {
@@ -312,6 +346,27 @@ export default function Home() {
                 onClick={() => handleWorkTypeChange("regular")}
               >
                 정규직
+              </button>
+
+              <div className="filter-divider-v" style={{ width: '1px', height: '16px', background: '#e2e8f0', margin: '0 4px', flexShrink: 0 }} />
+
+              <button
+                className={`filter ${timeType === "morning" ? "active" : ""}`}
+                onClick={() => handleTimeTypeChange("morning")}
+              >
+                오전
+              </button>
+              <button
+                className={`filter ${timeType === "afternoon" ? "active" : ""}`}
+                onClick={() => handleTimeTypeChange("afternoon")}
+              >
+                오후
+              </button>
+              <button
+                className={`filter ${timeType === "full" ? "active" : ""}`}
+                onClick={() => handleTimeTypeChange("full")}
+              >
+                종일
               </button>
             </>
           ) : (
@@ -427,6 +482,8 @@ export default function Home() {
                 setCategory={handleCategoryChange}
                 workType={workType}
                 setWorkType={handleWorkTypeChange}
+                timeType={timeType}
+                setTimeType={handleTimeTypeChange}
                 otherTypes={OTHER_WORKOUT_TYPES}
                 selectedOtherTypes={selectedOtherTypes}
                 toggleOtherType={handleOtherTypeToggle}

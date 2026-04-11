@@ -14,18 +14,17 @@ export default function RecentlyViewedJobs() {
 
     return (
         <div className="recent-jobs-page">
-            <header className="page-header">
-                <button className="back-btn" onClick={() => navigate(-1)}>
-                    <ICONS.chevronLeft size={24} />
+            <header className="unified-header">
+                <button className="back-btn" onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', padding: '8px', cursor: 'pointer' }}>
+                    <ICONS.back size={24} color="#1e293b" />
                 </button>
                 <h2 className="unified-title">최근 본 공고</h2>
-                <div style={{ width: 44 }} />
+                <div style={{ width: 40 }} />
             </header>
 
             <main className={`content ${isDesktop ? 'desktop' : ''}`}>
                 {isDesktop && (
                     <aside className="settings-side-nav">
-                        <button className="side-item" onClick={() => navigate('/mypage')}>내 정보</button>
                         <button className="side-item" onClick={() => navigate('/mypage/favorites')}>즐겨찾기</button>
                         <button className="side-item active">최근 본 공고</button>
                         <button className="side-item" onClick={() => navigate('/mypage/blocked-users')}>차단 사용자</button>
@@ -51,32 +50,27 @@ export default function RecentlyViewedJobs() {
                     min-height: 100vh;
                     background: #f8fafc;
                 }
-                .page-header {
+                .unified-header {
                     display: flex;
                     align-items: center;
                     justify-content: space-between;
                     padding: 12px 16px;
-                    height: 56px;
-                    background: rgba(255, 255, 255, 0.9);
-                    backdrop-filter: blur(10px);
-                    border-bottom: 1px solid rgba(0,0,0,0.03);
+                    background: #fff;
+                    border-bottom: 1px solid #f0f0f0;
                     position: sticky;
                     top: 0;
-                    z-index: 1000;
+                    z-index: 100;
                 }
                 .unified-title {
-                    font-size: 18px;
+                    font-size: 16px;
                     font-weight: 800;
+                    margin: 0;
                     color: #1e293b;
                 }
                 .back-btn {
-                    width: 44px;
-                    height: 44px;
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    background: none;
-                    border: none;
                 }
                 .content {
                     padding: 40px 20px;

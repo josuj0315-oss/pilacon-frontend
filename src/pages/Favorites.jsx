@@ -31,7 +31,6 @@ export default function Favorites() {
             <main className={`favorites-content ${isDesktop ? 'desktop' : ''}`} style={{ padding: '20px' }}>
                 {isDesktop && (
                     <aside className="settings-side-nav">
-                        <button className="side-item" onClick={() => navigate('/mypage')}>내 정보</button>
                         <button className="side-item active">즐겨찾기</button>
                         <button className="side-item" onClick={() => navigate('/mypage/recent-jobs')}>최근 본 공고</button>
                         <button className="side-item" onClick={() => navigate('/mypage/blocked-users')}>차단 사용자</button>

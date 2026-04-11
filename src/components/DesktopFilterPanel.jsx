@@ -7,12 +7,20 @@ const WORK_TYPE_OPTIONS = [
   { id: "short", label: "단기" },
   { id: "regular", label: "정규직" },
 ];
+const TIME_OPTIONS = [
+  { id: "all", label: "전체" },
+  { id: "morning", label: "오전" },
+  { id: "afternoon", label: "오후" },
+  { id: "full", label: "종일" },
+];
 
 export default function DesktopFilterPanel({
   category,
   setCategory,
   workType,
   setWorkType,
+  timeType,
+  setTimeType,
   otherTypes,
   selectedOtherTypes,
   toggleOtherType,
@@ -45,6 +53,23 @@ export default function DesktopFilterPanel({
                 key={opt.id}
                 className={`desktop-filter-btn ${workType === opt.id ? "active" : ""}`}
                 onClick={() => setWorkType(opt.id)}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="desktop-filter-divider" />
+
+        <div className="desktop-filter-section">
+          <h4>시간</h4>
+          <div className="desktop-filter-grid">
+            {TIME_OPTIONS.map((opt) => (
+              <button
+                key={opt.id}
+                className={`desktop-filter-btn ${timeType === opt.id ? "active" : ""}`}
+                onClick={() => setTimeType(opt.id)}
               >
                 {opt.label}
               </button>

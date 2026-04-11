@@ -1,12 +1,16 @@
 import React from 'react';
 import { usePilaCon } from '../store/pilaconStore';
 import { ICONS } from '../constants/icons';
+import PopupContainer from './PopupContainer';
 
 export default function GlobalUI() {
   const { toasts, globalModal, fullError, closeFullError } = usePilaCon();
 
   return (
     <>
+      {/* --- Popup Layer --- */}
+      <PopupContainer />
+
       {/* --- Toast Layer --- */}
       <div className="global-toast-container">
         {toasts.map((t) => (

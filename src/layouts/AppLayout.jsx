@@ -1,4 +1,4 @@
-import { useNavigate, Outlet, useLocation } from "react-router-dom";
+import { useNavigate, Outlet, useLocation, Link } from "react-router-dom";
 import { useState } from "react";
 import BottomNav from "../components/BottomNav";
 import { usePilaCon } from "../store/pilaconStore";
@@ -8,6 +8,7 @@ import useDevice from "../hooks/useDevice";
 import MessageNotificationBanner from "../components/MessageNotificationBanner";
 import FitJobLogo from "../components/FitJobLogo";
 import PCFooter from "./components/PCFooter";
+import { resetAppScrollPosition } from "../utils/scroll";
 
 
 export default function AppLayout() {
@@ -27,6 +28,8 @@ export default function AppLayout() {
   const hideNav =
     location.pathname.startsWith("/jobs/") ||
     location.pathname.startsWith("/activity/applicants") ||
+    location.pathname === "/mypage/recent-jobs" ||
+    location.pathname === "/mypage/blocked-users" ||
     isDetailView; // 필요하면 추가
 
   const isHome = location.pathname === "/" || location.pathname === "/home";
@@ -69,7 +72,11 @@ export default function AppLayout() {
               <div className="page-title-mini">
                 {location.pathname === "/chat" ? "채팅" : 
                  location.pathname === "/activity" ? "내 활동" :
-                 location.pathname === "/mypage" ? "내 정보" : <FitJobLogo height="15px" />}
+                 location.pathname === "/mypage" ? "내 정보" : (
+                   <Link to="/" onClick={() => resetAppScrollPosition()} style={{ display: 'flex', alignItems: 'center' }}>
+                     <FitJobLogo height="15px" />
+                   </Link>
+                 )}
               </div>
             )}
           </div>

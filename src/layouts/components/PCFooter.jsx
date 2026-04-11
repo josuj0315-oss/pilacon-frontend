@@ -1,6 +1,7 @@
 import { Facebook, Instagram } from "lucide-react";
 import { Link } from "react-router-dom";
 import FitJobLogo from "../../components/FitJobLogo";
+import { resetAppScrollPosition } from "../../utils/scroll";
 
 
 export default function PCFooter() {
@@ -9,16 +10,16 @@ export default function PCFooter() {
       <div className="pc-footer-inner">
         <div className="pc-footer-top">
           <div className="pc-footer-brand">
-            <div className="pc-footer-logo" aria-label="FITJOB">
+            <Link to="/" className="pc-footer-logo" aria-label="FITJOB" onClick={() => resetAppScrollPosition()}>
               <FitJobLogo height="20px" />
-            </div>
+            </Link>
             <p className="pc-footer-copy">필라테스/요가 강사를 위한 채용 플랫폼</p>
           </div>
 
           <nav className="pc-footer-links" aria-label="푸터 메뉴">
             <Link to="/terms" className="pc-footer-link">이용약관</Link>
             <Link to="/privacy" className="pc-footer-link">개인정보처리방침</Link>
-            <Link to="/inquiry" className="pc-footer-link">문의하기</Link>
+            <Link to="/partnership" className="pc-footer-link">광고/제휴 문의</Link>
             <Link to="/notice" className="pc-footer-link">공지사항</Link>
           </nav>
 

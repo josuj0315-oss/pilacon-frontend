@@ -28,7 +28,7 @@ import CenterManagement from "./pages/CenterManagement";
 
 import TermsOfService from "./pages/TermsOfService";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
-import Inquiry from "./pages/Inquiry";
+import Partnership from "./pages/Partnership";
 import Notice from "./pages/Notice";
 import NoticeDetail from "./pages/NoticeDetail";
 
@@ -40,8 +40,32 @@ import AdminNoticeWrite from "./pages/admin/AdminNoticeWrite";
 import AdminInquiryList from "./pages/admin/AdminInquiryList";
 import AdminInquiryDetail from "./pages/admin/AdminInquiryDetail";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import useDevice from "./hooks/useDevice";
+import { useLocation } from "react-router-dom";
+import { resetAppScrollPosition } from "./utils/scroll";
+
+function ScrollToTop() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    const scrollPaths = [
+      "/terms",
+      "/privacy",
+      "/partnership",
+      "/notice",
+      "/mypage/favorites"
+    ];
+    
+    const shouldReset = scrollPaths.some(path => pathname === path || (path !== "/mypage/favorites" && pathname.startsWith(path)));
+
+    if (shouldReset) {
+      resetAppScrollPosition();
+    }
+  }, [pathname]);
+
+  return null;
+}
 
 export default function App() {
   const { user, isAuthLoading } = usePilaCon();
@@ -59,21 +83,25 @@ export default function App() {
   if (!user) {
     if (!isDesktop) {
       return (
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<SignupWizard />} />
-          <Route path="/terms" element={<TermsOfService />} />
-          <Route path="/privacy" element={<PrivacyPolicy />} />
-          <Route path="/inquiry" element={<Inquiry />} />
-          <Route path="/notice" element={<Notice />} />
-          <Route path="/notice/:id" element={<NoticeDetail />} />
-          <Route path="*" element={<Navigate to="/login" />} />
-        </Routes>
+        <>
+          <ScrollToTop />
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<SignupWizard />} />
+            <Route path="/terms" element={<TermsOfService />} />
+            <Route path="/privacy" element={<PrivacyPolicy />} />
+            <Route path="/partnership" element={<Partnership />} />
+            <Route path="/notice" element={<Notice />} />
+            <Route path="/notice/:id" element={<NoticeDetail />} />
+            <Route path="*" element={<Navigate to="/login" />} />
+          </Routes>
+        </>
       );
     }
 
     return (
       <div id="appScreen">
+        <ScrollToTop />
         <GlobalUI />
         <Routes>
           <Route element={<MainLayout />}>
@@ -81,7 +109,7 @@ export default function App() {
             <Route path="/jobs/:id" element={<JobPostDetail />} />
             <Route path="/terms" element={<TermsOfService />} />
             <Route path="/privacy" element={<PrivacyPolicy />} />
-            <Route path="/inquiry" element={<Inquiry />} />
+            <Route path="/partnership" element={<Partnership />} />
             <Route path="/notice" element={<Notice />} />
             <Route path="/notice/:id" element={<NoticeDetail />} />
           </Route>
@@ -104,6 +132,7 @@ export default function App() {
 
   return (
     <div id="appScreen">
+      <ScrollToTop />
       <GlobalUI />
       <Routes>
         <Route element={<MainLayout />}>
@@ -115,9 +144,11 @@ export default function App() {
           <Route path="/mypage/favorites" element={<Favorites />} />
           <Route path="/terms" element={<TermsOfService />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
-          <Route path="/inquiry" element={<Inquiry />} />
+          <Route path="/partnership" element={<Partnership />} />
           <Route path="/notice" element={<Notice />} />
           <Route path="/notice/:id" element={<NoticeDetail />} />
+          <Route path="/mypage/recent-jobs" element={<RecentlyViewedJobs />} />
+          <Route path="/mypage/blocked-users" element={<BlockedUsers />} />
         </Route>
 
         {/* ✅ 하단 탭 없이 단독 화면으로 쓰고 싶은 페이지 */}
@@ -132,8 +163,7 @@ export default function App() {
         <Route path="/mypage/notification-settings" element={<NotificationSettings />} />
         <Route path="/mypage/notification-settings/custom" element={<NotificationCustomSettings />} />
         <Route path="/mypage/app-settings" element={<AppSettings />} />
-        <Route path="/mypage/recent-jobs" element={<RecentlyViewedJobs />} />
-        <Route path="/mypage/blocked-users" element={<BlockedUsers />} />
+
 
         {/* ✅ Admin Routes */}
         <Route path="/admin" element={<AdminLayout />}>
@@ -152,3 +182,4 @@ export default function App() {
     </div>
   );
 }
+
