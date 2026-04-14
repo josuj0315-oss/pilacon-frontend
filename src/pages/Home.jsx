@@ -28,7 +28,7 @@ export default function Home() {
   const [desktopSearchParams, setDesktopSearchParams] = useSearchParams();
   const { category, setCategory } = useCategory();
   const navigate = useNavigate();
-  const { jobs, loading, isFavorited, toggleFavorite } = usePilaCon();
+  const { user, jobs, loading, isFavorited, toggleFavorite, confirm } = usePilaCon();
 
   const [showCategoryMenu, setShowCategoryMenu] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -536,9 +536,18 @@ export default function Home() {
             <div className="fab-menu-list">
               <button
                 className="fab-menu-item"
-                onClick={() => {
-                  setShowFabSheet(false);
-                  navigate(`/write?category=${encodeURIComponent(category)}`);
+                onClick={async () => {
+                  const nextPath = `/write?category=${encodeURIComponent(category)}`;
+                  if (!user) {
+                    const ok = await confirm("알림", "로그인 후 이용하세요.");
+                    if (ok) {
+                      setShowFabSheet(false);
+                      navigate(`/login?next=${encodeURIComponent(nextPath)}`);
+                    }
+                  } else {
+                    setShowFabSheet(false);
+                    navigate(nextPath);
+                  }
                 }}
               >
                 <ICONS.plus size={24} strokeWidth={2.5} color="#5b5ff5" />
@@ -547,9 +556,18 @@ export default function Home() {
 
               <button
                 className="fab-menu-item"
-                onClick={() => {
-                  setShowFabSheet(false);
-                  navigate(`/profile/edit?mode=new`);
+                onClick={async () => {
+                  const nextPath = `/profile/edit?mode=new`;
+                  if (!user) {
+                    const ok = await confirm("알림", "로그인 후 이용하세요.");
+                    if (ok) {
+                      setShowFabSheet(false);
+                      navigate(`/login?next=${encodeURIComponent(nextPath)}`);
+                    }
+                  } else {
+                    setShowFabSheet(false);
+                    navigate(nextPath);
+                  }
                 }}
               >
                 <ICONS.profile size={24} strokeWidth={2.5} color="#5b5ff5" />

@@ -2,14 +2,16 @@ import { useNavigate } from 'react-router-dom';
 import { usePilaCon } from '../store/pilaconStore';
 import { ICONS, ICON_CONFIG } from '../constants/icons';
 import useDevice from '../hooks/useDevice';
+import { IS_EMAIL_LOGIN_ENABLED } from '../constants/auth';
 
 export default function MyPage() {
   const { isDesktop } = useDevice();
-  const { user, logout } = usePilaCon();
+  const { user, logout, confirm } = usePilaCon();
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    if (window.confirm('로그아웃 하시겠습니까?')) {
+  const handleLogout = async () => {
+    const ok = await confirm('로그아웃', '로그아웃 하시겠습니까?');
+    if (ok) {
       logout();
       navigate('/');
     }
@@ -57,68 +59,93 @@ export default function MyPage() {
       <div className="mypage-content">
         {/* 프로필 카드 영역 */}
         <section className="profile-section">
-          <div className="profile-main">
-            <div className="profile-avatar">
-              {user?.profileImage ? (
-                <img src={user.profileImage} alt="Profile" className="profile-img" />
-              ) : (
-                <ICONS.profile size={32} color={ICON_CONFIG.color.active} />
-              )}
+          {user ? (
+            <div className="profile-main">
+              <div className="profile-avatar">
+                {user?.profileImage ? (
+                  <img src={user.profileImage} alt="Profile" className="profile-img" />
+                ) : (
+                  <ICONS.profile size={32} color={ICON_CONFIG.color.active} />
+                )}
+              </div>
+              <div className="profile-info">
+                <h2 className="profile-name">{user?.nickname || user?.name || '사용자'}</h2>
+                <p className="profile-email">{user?.email || '이메일 정보 없음'}</p>
+              </div>
+              <button className="profile-edit-btn" onClick={() => navigate('/mypage/profile/edit')}>
+                프로필 수정
+              </button>
             </div>
-            <div className="profile-info">
-              <h2 className="profile-name">{user?.nickname || user?.name || '사용자'}</h2>
-              <p className="profile-email">{user?.email || '이메일 정보 없음'}</p>
+          ) : (
+            <div className="profile-guest">
+              <div className="guest-copy">
+                <h2 className="guest-title">로그인이 필요해요</h2>
+                <p className="guest-desc">로그인해서 더 많은 기능을 이용해보세요!</p>
+              </div>
+              <button className="login-trigger-btn" onClick={() => navigate('/login')}>
+                {IS_EMAIL_LOGIN_ENABLED ? '로그인 / 회원가입' : '로그인'}
+              </button>
             </div>
-            <button className="profile-edit-btn" onClick={() => navigate('/mypage/profile/edit')}>
-              프로필 수정
-            </button>
-          </div>
+          )}
 
-          <div className="profile-meta-list">
-            <div className="profile-meta-row">
-              <span>아이디</span>
-              <strong>{user?.username || '-'}</strong>
+          {user && (
+            <div className="profile-meta-list">
+              <div className="profile-meta-row">
+                <span>아이디</span>
+                <strong>{user?.username || '-'}</strong>
+              </div>
+              <div className="profile-meta-row">
+                <span>이메일</span>
+                <strong>{user?.email || '-'}</strong>
+              </div>
+              <div className="profile-meta-row">
+                <span>연락처</span>
+                <strong>{user?.phone || '-'}</strong>
+              </div>
             </div>
-            <div className="profile-meta-row">
-              <span>이메일</span>
-              <strong>{user?.email || '-'}</strong>
-            </div>
-            <div className="profile-meta-row">
-              <span>연락처</span>
-              <strong>{user?.phone || '-'}</strong>
-            </div>
-          </div>
+          )}
         </section>
 
         {/* 메뉴 그룹 영역 */}
         <div className="menu-groups">
-          {menuGroups.map((group, gIdx) => (
-            <div key={gIdx} className="group-container">
-              <h3 className="group-header">{group.title}</h3>
-              <div className="group-list">
-                {group.items.map((item, iIdx) => {
-                  const Icon = item.icon;
-                  return (
-                    <button key={iIdx} className="menu-item-btn" onClick={() => item.path !== '#' && navigate(item.path)}>
-                      <div className="item-left">
-                        {Icon && <Icon size={20} color="#475569" strokeWidth={2} />}
-                        <span className="item-label">{item.label}</span>
-                      </div>
-                      <ICONS.chevronRight size={18} color="#cbd5e1" />
-                    </button>
-                  );
-                })}
+          {menuGroups.map((group, gIdx) => {
+            // 로그인 필요 기능 필터링 (게스트일 때)
+            const filteredItems = !user 
+              ? group.items.filter(item => ['최근 본 공고', '앱 설정'].includes(item.label))
+              : group.items;
+              
+            if (filteredItems.length === 0) return null;
+
+            return (
+              <div key={gIdx} className="group-container">
+                <h3 className="group-header">{group.title}</h3>
+                <div className="group-list">
+                  {filteredItems.map((item, iIdx) => {
+                    const Icon = item.icon;
+                    return (
+                      <button key={iIdx} className="menu-item-btn" onClick={() => item.path !== '#' && navigate(item.path)}>
+                        <div className="item-left">
+                          {Icon && <Icon size={20} color="#475569" strokeWidth={2} />}
+                          <span className="item-label">{item.label}</span>
+                        </div>
+                        <ICONS.chevronRight size={18} color="#cbd5e1" />
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
-        {/* 로그아웃 버튼 */}
-        <div className="logout-section">
-          <button className="logout-btn-full" onClick={handleLogout}>
-            로그아웃
-          </button>
-        </div>
+        {/* 로그아웃 버튼 (로그인 상태에서만) */}
+        {user && (
+          <div className="logout-section">
+            <button className="logout-btn-full" onClick={handleLogout}>
+              로그아웃
+            </button>
+          </div>
+        )}
       </div>
 
       <style>{`
@@ -149,6 +176,39 @@ export default function MyPage() {
           display: flex;
           align-items: center;
           gap: 16px;
+        }
+        .profile-guest {
+          padding: 8px 0;
+        }
+        .guest-copy {
+          margin-bottom: 16px;
+        }
+        .guest-title {
+          font-size: 20px;
+          font-weight: 800;
+          color: #1e293b;
+          margin-bottom: 4px;
+        }
+        .guest-desc {
+          font-size: 14px;
+          color: #64748b;
+          font-weight: 500;
+        }
+        .login-trigger-btn {
+          width: 100%;
+          padding: 14px;
+          background: #5b5ff5;
+          color: #fff;
+          border: none;
+          border-radius: 12px;
+          font-size: 15px;
+          font-weight: 700;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        .login-trigger-btn:active {
+          background: #4a4ed4;
+          transform: scale(0.98);
         }
         .profile-avatar {
           width: 56px;

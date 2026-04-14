@@ -50,7 +50,7 @@
   background: none;
   border: none;
   font-size: 18px;
-  font-weight: 900;
+  font-weight: 800;
   color: #64748b;
   cursor: pointer;
 }
@@ -78,7 +78,7 @@
   width: 100%;
   padding: 16px;
   font-size: 13px;      /* 16 -> 13 (전체 버튼 기준 통일) */
-  font-weight: 900;
+  font-weight: 800;
   letter-spacing: -0.01em;
   background: var(--brand); /* index.css 기준 */
   color: white;
@@ -107,7 +107,7 @@
   border: 1px solid rgba(15, 23, 42, 0.10);
   background: #fff;
   cursor: pointer;
-  font-weight: 900;
+  font-weight: 800;
   font-size: 16px;
   color: #64748b;
   line-height: 1;

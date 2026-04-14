@@ -37,7 +37,7 @@ export default function AppLayout() {
   return (
     <div className="app-layout">
       <MessageNotificationBanner />
-      {!hideMobileHeader && !isDesktop && user && (
+      {!hideMobileHeader && !isDesktop && (
         <div id="userBadge" className="user-badge">
           <div className="header-left">
             {isHome ? (
@@ -81,12 +81,14 @@ export default function AppLayout() {
             )}
           </div>
           <div className="header-actions">
-            <button className="header-icon-btn notification-btn" onClick={() => navigate('/notifications')}>
-              <ICONS.notification size={20} color="#1e293b" strokeWidth={2.5} />
-              {unreadCount > 0 && (
-                <span className="unread-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>
-              )}
-            </button>
+            {user && (
+              <button className="header-icon-btn notification-btn" onClick={() => navigate('/notifications')}>
+                <ICONS.notification size={20} color="#1e293b" strokeWidth={2.5} />
+                {unreadCount > 0 && (
+                  <span className="unread-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>
+                )}
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -128,14 +130,20 @@ export default function AppLayout() {
           cursor: pointer;
         }
         .category-text {
+          font-family: "Pretendard", -apple-system, "Apple SD Gothic Neo", sans-serif;
           font-size: 24px;
-          font-weight: 900;
+          font-weight: 800;
           color: #0f172a;
           letter-spacing: -0.03em;
         }
         .page-title-mini {
           display: inline-flex;
           align-items: center;
+          font-family: "Pretendard", -apple-system, "Apple SD Gothic Neo", sans-serif;
+          font-size: 24px;
+          font-weight: 800;
+          color: #0f172a;
+          letter-spacing: -0.03em;
         }
         .category-menu-mini {
           position: absolute;

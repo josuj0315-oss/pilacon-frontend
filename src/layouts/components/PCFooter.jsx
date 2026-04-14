@@ -13,7 +13,7 @@ export default function PCFooter() {
             <Link to="/" className="pc-footer-logo" aria-label="FITJOB" onClick={() => resetAppScrollPosition()}>
               <FitJobLogo height="20px" />
             </Link>
-            <p className="pc-footer-copy">필라테스/요가 강사를 위한 채용 플랫폼</p>
+            <p className="pc-footer-copy">피트니스 강사와 센터를 위한 채용 플랫폼</p>
           </div>
 
           <nav className="pc-footer-links" aria-label="푸터 메뉴">

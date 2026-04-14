@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { usePilaCon } from '../store/pilaconStore';
 import FitJobLogo from '../components/FitJobLogo';
+import { IS_EMAIL_LOGIN_ENABLED, getOnboardingPath } from '../constants/auth';
 import './Login.css';
 
 
@@ -18,6 +19,13 @@ export default function Login() {
         nickname: ''
     });
     const [error, setError] = useState('');
+
+    // 일반 로그인 비활성화 시 모드 강제 고정
+    useEffect(() => {
+        if (!IS_EMAIL_LOGIN_ENABLED && mode !== 'choice') {
+            setMode('choice');
+        }
+    }, [mode]);
 
     // URL에서 토큰 확인 및 처리
     useEffect(() => {
@@ -49,11 +57,18 @@ export default function Login() {
                 console.log("- LS.auth (key='auth'):", localStorage.getItem('auth') ? "EXISTS" : "NULL");
             }
             
-            loginWithToken(token, refreshToken).then((ok) => {
-                if (isDev) console.log("4. fetchMyData finished. Login success?", ok);
-                if (ok) {
-                    if (isDev) console.log("5. State is populated, navigating to Home.");
-                    navigate("/", { replace: true });
+            loginWithToken(token, refreshToken).then((res) => {
+                if (isDev) console.log("4. fetchMyData finished. Login success?", res.ok);
+                if (res.ok) {
+                    if (isDev) console.log("5. State is populated, checking role for navigation.");
+                    const user = res.user;
+                    console.log("--- [DEBUG] Login Success ---");
+                    console.log("User ID:", user?.id);
+                    console.log("Nickname:", user?.nickname);
+                    console.log("Role:", user?.role);
+                    console.log("Next Path:", getOnboardingPath(user));
+                    console.log("----------------------------");
+                    navigate(getOnboardingPath(user), { replace: true });
                 } else {
                     if (isDev) console.error("4-b. Login failed during user data fetch!");
                 }
@@ -82,12 +97,32 @@ export default function Login() {
                 username: formData.username,
                 password: formData.password
             });
-            if (res.ok) navigate('/');
-            else setError(res.error);
+            if (res.ok) {
+                const user = res.user;
+                console.log("--- [DEBUG] Local Login Success ---");
+                console.log("User ID:", user?.id);
+                console.log("Nickname:", user?.nickname);
+                console.log("Role:", user?.role);
+                console.log("Next Path:", getOnboardingPath(user));
+                console.log("----------------------------------");
+                navigate(getOnboardingPath(user));
+            } else {
+                setError(res.error);
+            }
         } else {
             const res = await localSignup(formData);
-            if (res.ok) navigate('/');
-            else setError(res.error);
+            if (res.ok) {
+                const user = res.user;
+                console.log("--- [DEBUG] Local Signup Success ---");
+                console.log("User ID:", user?.id);
+                console.log("Nickname:", user?.nickname);
+                console.log("Role:", user?.role);
+                console.log("Next Path:", getOnboardingPath(user));
+                console.log("-----------------------------------");
+                navigate(getOnboardingPath(user));
+            } else {
+                setError(res.error);
+            }
         }
     };
 
@@ -111,20 +146,30 @@ export default function Login() {
                 네이버로 시작하기
             </button>
 
-            <div className="divider">
-                <span>또는</span>
-            </div>
+            {!IS_EMAIL_LOGIN_ENABLED && (
+                <p className="simple-login-notice">
+                    카카오 / 네이버로 빠르게 시작하세요
+                </p>
+            )}
 
-            <button
-                className="login-btn local"
-                onClick={() => setMode('login')}
-            >
-                일반 로그인
-            </button>
+            {IS_EMAIL_LOGIN_ENABLED && (
+                <>
+                    <div className="divider">
+                        <span>또는</span>
+                    </div>
 
-            <div className="signup-link">
-                계정이 없으신가요? <span onClick={() => navigate('/signup')}>회원가입</span>
-            </div>
+                    <button
+                        className="login-btn local"
+                        onClick={() => setMode('login')}
+                    >
+                        일반 로그인
+                    </button>
+
+                    <div className="signup-link">
+                        계정이 없으신가요? <span onClick={() => navigate('/signup')}>회원가입</span>
+                    </div>
+                </>
+            )}
         </div>
     );
 
@@ -188,7 +233,7 @@ export default function Login() {
                 </div>
                 <p className="app-description">
                     강사와 센터를 잇는<br />
-                    가장 완벽한 필라테스 파트너
+                    가장 완벽한 피트니스 채용 파트너
                 </p>
 
                 {mode === 'choice' ? renderChoice() : renderForm()}

@@ -342,12 +342,15 @@ export function PilaConProvider({ children }) {
       return;
     }
     isFetchingAuth = true;
+    let userData = null;
     try {
       const headers = tokenParam ? { Authorization: `Bearer ${tokenParam}` } : {};
       const timestamp = new Date().getTime();
       const authRes = await axios.get(`${API_BASE_URL}/auth/me?_t=${timestamp}`, { headers });
-      setUser(authRes.data);
-      writeJSON(LS.auth, authRes.data);
+      console.log('🔥 [Store] fetchMyData - Response data:', authRes.data);
+      userData = authRes.data;
+      setUser(userData);
+      writeJSON(LS.auth, userData);
     } catch (e) {
       console.error('Failed to fetch user data (/auth/me):', e);
       localStorage.removeItem("accessToken");
@@ -377,6 +380,7 @@ export function PilaConProvider({ children }) {
     finally {
       isFetchingAuth = false;
     }
+    return userData;
   };
 
   // 1. 초기 데이터 로드 (백엔드 API 호출)
@@ -445,11 +449,11 @@ export function PilaConProvider({ children }) {
       if (refreshToken) {
         localStorage.setItem("refreshToken", refreshToken);
       }
-      await fetchMyData(accessToken);
-      return true;
+      const userData = await fetchMyData(accessToken);
+      return { ok: true, user: userData };
     } catch (e) {
       console.error('Login failed', e);
-      return false;
+      return { ok: false, error: e };
     } finally {
       setIsAuthLoading(false);
     }
@@ -471,7 +475,7 @@ export function PilaConProvider({ children }) {
       localStorage.setItem("accessToken", accessToken);
       localStorage.setItem("refreshToken", refreshToken);
       setUser(userData);
-      return { ok: true };
+      return { ok: true, user: userData };
     } catch (e) {
       console.error('Signup failed', e);
       return { ok: false, error: e.response?.data?.message || '회원가입에 실패했습니다.' };
@@ -491,8 +495,8 @@ export function PilaConProvider({ children }) {
         writeJSON(LS.auth, userData);
       }
       
-      await fetchMyData(accessToken);
-      return { ok: true };
+      const finalUser = await fetchMyData(accessToken);
+      return { ok: true, user: finalUser || userData };
     } catch (e) {
       console.error('Login failed', e);
       return { ok: false, error: e.response?.data?.message || '로그인에 실패했습니다.' };

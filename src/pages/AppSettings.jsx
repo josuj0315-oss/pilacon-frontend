@@ -13,22 +13,21 @@ export default function AppSettings() {
         {
             title: '고객지원',
             items: [
-                { label: '문의하기', icon: ICONS.activity, path: '#' },
-                { label: '공지사항', icon: ICONS.activity, path: '#' },
+                { label: '광고/제휴 문의', icon: ICONS.activity, path: '/partnership' },
+                { label: '공지사항', icon: ICONS.activity, path: '/notice' },
             ]
         },
         {
             title: '약관 및 정책',
             items: [
-                { label: '이용약관', icon: ICONS.activity, path: '#' },
-                { label: '개인정보 처리방침', icon: ICONS.activity, path: '#' },
+                { label: '이용약관', icon: ICONS.activity, path: '/terms' },
+                { label: '개인정보 처리방침', icon: ICONS.activity, path: '/privacy' },
             ]
         },
         {
             title: '계정 관리',
             items: [
                 { label: '로그아웃', icon: ICONS.activity, action: logout, danger: true },
-                { label: '회원탈퇴', icon: ICONS.activity, path: '#', danger: true },
             ]
         }
     ];
@@ -80,6 +79,10 @@ export default function AppSettings() {
                 <div className="version-info">
                     <span>앱 버전</span>
                     <span className="version-text">1.0.0</span>
+                </div>
+                
+                <div className="withdraw-info">
+                    <button className="withdraw-btn" onClick={() => navigate('#')}>회원탈퇴</button>
                 </div>
                 </section>
             </main>
@@ -178,6 +181,20 @@ export default function AppSettings() {
                 .version-text {
                     font-weight: 700;
                     color: #cbd5e1;
+                }
+                .withdraw-info {
+                    display: flex;
+                    justify-content: center;
+                    padding: 24px 20px 40px;
+                }
+                .withdraw-btn {
+                    background: none;
+                    border: none;
+                    color: #cbd5e1;
+                    font-size: 13px;
+                    font-weight: 500;
+                    text-decoration: underline;
+                    cursor: pointer;
                 }
                 @media (min-width: 1200px) {
                     .settings-content.desktop {

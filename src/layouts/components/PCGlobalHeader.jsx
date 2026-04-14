@@ -4,11 +4,13 @@ import { ICONS } from "../../constants/icons";
 import { usePilaCon } from "../../store/pilaconStore";
 import { resetAppScrollPosition } from "../../utils/scroll";
 import FitJobLogo from "../../components/FitJobLogo";
+import { IS_EMAIL_LOGIN_ENABLED } from "../../constants/auth";
 
 const navItems = [
   { to: "/", label: "채용정보", requiresAuth: false },
   { to: "/activity", label: "내 활동", requiresAuth: true },
   { to: "/chat", label: "메시지", requiresAuth: true },
+  { to: "/mypage", label: "내 정보", requiresAuth: false },
 ];
 
 export default function PCGlobalHeader({
@@ -20,7 +22,7 @@ export default function PCGlobalHeader({
   onSearchSubmit,
 }) {
   const navigate = useNavigate();
-  const { user, showToast, getNotifications, markNotificationAsRead } = usePilaCon();
+  const { user, showToast, getNotifications, markNotificationAsRead, confirm } = usePilaCon();
   const isLoggedIn = !!user;
   const chatBadge = unreadMessageCount > 99 ? "99+" : unreadMessageCount;
   const [openNotif, setOpenNotif] = useState(false);
@@ -63,15 +65,22 @@ export default function PCGlobalHeader({
     }
   };
 
-  const goLogin = (nextPath = "/") => {
-    showToast("로그인 후 이용할 수 있습니다.", "info");
+  const goLogin = async (nextPath = "/") => {
     resetAppScrollPosition();
-    navigate(`/login?next=${encodeURIComponent(nextPath)}`);
+    const ok = await confirm("알림", "로그인 후 이용하세요.");
+    if (ok) {
+      navigate(`/login?next=${encodeURIComponent(nextPath)}`);
+    } else {
+      navigate("/");
+    }
   };
 
-  const handleProtectedAction = (nextPath, action) => {
+  const handleProtectedAction = async (nextPath, action) => {
     if (!isLoggedIn) {
-      goLogin(nextPath);
+      const ok = await confirm("알림", "로그인 후 이용하세요.");
+      if (ok) {
+        navigate(`/login?next=${encodeURIComponent(nextPath)}`);
+      }
       return;
     }
     action();
@@ -183,16 +192,20 @@ export default function PCGlobalHeader({
                 >
                   로그인
                 </button>
-                <span className="pc-auth-links-divider">|</span>
-                <button
-                  className="pc-auth-link"
-                  onClick={() => {
-                    resetAppScrollPosition();
-                    navigate("/signup");
-                  }}
-                >
-                  회원가입
-                </button>
+                {IS_EMAIL_LOGIN_ENABLED && (
+                  <>
+                    <span className="pc-auth-links-divider">|</span>
+                    <button
+                      className="pc-auth-link"
+                      onClick={() => {
+                        resetAppScrollPosition();
+                        navigate("/signup");
+                      }}
+                    >
+                      회원가입
+                    </button>
+                  </>
+                )}
               </div>
             )}
           </div>

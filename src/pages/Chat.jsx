@@ -11,13 +11,27 @@ export default function Chat() {
   usePageTitle("채팅 | 핏잡");
   const navigate = useNavigate();
   const { isDesktop } = useDevice();
-  const { getChatRooms, isUserBlocked, isChatRoomMuted } = usePilaCon();
+  const { user, getChatRooms, isUserBlocked, isChatRoomMuted } = usePilaCon();
   const [searchParams, setSearchParams] = useSearchParams();
   const [q, setQ] = useState("");
   const [realRooms, setRealRooms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedRoomId, setSelectedRoomId] = useState(null);
   const roomParam = searchParams.get("room");
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      if (!user) {
+        const ok = await confirm("알림", "로그인 후 이용하세요.");
+        if (ok) {
+          navigate(`/login?next=${encodeURIComponent("/chat")}`);
+        } else {
+          navigate("/");
+        }
+      }
+    };
+    checkAuth();
+  }, [user, navigate, confirm]);
 
   useEffect(() => {
     const fetchRooms = async () => {
@@ -30,6 +44,7 @@ export default function Chat() {
   }, [getChatRooms]);
 
   const rooms = useMemo(() => {
+    if (!realRooms) return [];
     const list = realRooms.map((r) => {
       const job = r.job;
       return {

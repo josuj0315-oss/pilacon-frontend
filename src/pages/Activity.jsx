@@ -46,14 +46,28 @@ export default function Activity() {
   const [selectedApplication, setSelectedApplication] = useState(null);
   const [selectedJob, setSelectedJob] = useState(null);
 
-  const { appliedList, myJobs, jobs, favorites, createChatRoom, cancelApplication, closeJob, confirm, showToast } = usePilaCon();
+  const { user, appliedList, myJobs, jobs, favorites, createChatRoom, cancelApplication, closeJob, confirm, showToast } = usePilaCon();
 
   useEffect(() => {
-    if (view === "appliedDetail" && appIdParam && appliedList.length > 0) {
+    const checkAuth = async () => {
+      if (!user) {
+        const ok = await confirm("알림", "로그인 후 이용하세요.");
+        if (ok) {
+          navigate(`/login?next=${encodeURIComponent("/activity")}`);
+        } else {
+          navigate("/");
+        }
+      }
+    };
+    checkAuth();
+  }, [user, navigate, confirm]);
+
+  useEffect(() => {
+    if (view === "appliedDetail" && appIdParam && appliedList?.length > 0) {
       const found = appliedList.find((a) => String(a.id) === String(appIdParam));
       if (found) setSelectedApplication(found);
     }
-    if (view === "jobDetail" && jobIdParam && jobs.length > 0) {
+    if (view === "jobDetail" && jobIdParam && jobs?.length > 0) {
       const found = jobs.find((j) => String(j.id) === String(jobIdParam));
       if (found) setSelectedJob(found);
     }

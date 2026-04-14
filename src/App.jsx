@@ -1,5 +1,6 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { usePilaCon } from "./store/pilaconStore";
+import { IS_EMAIL_LOGIN_ENABLED, getOnboardingPath } from "./constants/auth";
 import AppLayout from "./layouts/AppLayout";
 import PCLayout from "./layouts/PCLayout";
 
@@ -25,6 +26,8 @@ import Favorites from "./pages/Favorites";
 import UserInfoEdit from "./pages/UserInfoEdit";
 import SignupWizard from "./pages/SignupWizard";
 import CenterManagement from "./pages/CenterManagement";
+import SelectRole from "./pages/SelectRole";
+import SetNickname from "./pages/SetNickname";
 
 import TermsOfService from "./pages/TermsOfService";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
@@ -42,7 +45,6 @@ import AdminInquiryDetail from "./pages/admin/AdminInquiryDetail";
 
 import { useState, useEffect } from "react";
 import useDevice from "./hooks/useDevice";
-import { useLocation } from "react-router-dom";
 import { resetAppScrollPosition } from "./utils/scroll";
 
 function ScrollToTop() {
@@ -80,56 +82,6 @@ export default function App() {
     );
   }
 
-  if (!user) {
-    if (!isDesktop) {
-      return (
-        <>
-          <ScrollToTop />
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<SignupWizard />} />
-            <Route path="/terms" element={<TermsOfService />} />
-            <Route path="/privacy" element={<PrivacyPolicy />} />
-            <Route path="/partnership" element={<Partnership />} />
-            <Route path="/notice" element={<Notice />} />
-            <Route path="/notice/:id" element={<NoticeDetail />} />
-            <Route path="*" element={<Navigate to="/login" />} />
-          </Routes>
-        </>
-      );
-    }
-
-    return (
-      <div id="appScreen">
-        <ScrollToTop />
-        <GlobalUI />
-        <Routes>
-          <Route element={<MainLayout />}>
-            <Route path="/" element={<Home />} />
-            <Route path="/jobs/:id" element={<JobPostDetail />} />
-            <Route path="/terms" element={<TermsOfService />} />
-            <Route path="/privacy" element={<PrivacyPolicy />} />
-            <Route path="/partnership" element={<Partnership />} />
-            <Route path="/notice" element={<Notice />} />
-            <Route path="/notice/:id" element={<NoticeDetail />} />
-          </Route>
-
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<SignupWizard />} />
-
-          <Route path="/activity" element={<Navigate to="/login?next=%2Factivity" replace />} />
-          <Route path="/chat" element={<Navigate to="/login?next=%2Fchat" replace />} />
-          <Route path="/chat/:id" element={<Navigate to="/login?next=%2Fchat" replace />} />
-          <Route path="/write" element={<Navigate to="/login?next=%2Fwrite" replace />} />
-          <Route path="/mypage" element={<Navigate to="/login?next=%2Fmypage" replace />} />
-          <Route path="/mypage/*" element={<Navigate to="/login?next=%2Fmypage" replace />} />
-          <Route path="/profile/*" element={<Navigate to="/login?next=%2Fprofile%2Fedit" replace />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </div>
-    );
-  }
-
   return (
     <div id="appScreen">
       <ScrollToTop />
@@ -153,6 +105,11 @@ export default function App() {
 
         {/* ✅ 하단 탭 없이 단독 화면으로 쓰고 싶은 페이지 */}
         <Route path="/write" element={<Write />} />
+        <Route path="/login" element={user ? <Navigate to={getOnboardingPath(user)} /> : <Login />} />
+        <Route path="/signup" element={user ? <Navigate to={getOnboardingPath(user)} /> : (IS_EMAIL_LOGIN_ENABLED ? <SignupWizard /> : <Navigate to="/login" />)} />
+        <Route path="/set-nickname" element={<SetNickname />} />
+        <Route path="/select-role" element={<SelectRole />} />
+        
         <Route path="/profile/edit" element={<InstructorProfileManager />} />
         <Route path="/profile/centers" element={<CenterManagement />} />
         <Route path="/mypage/profile/edit" element={<UserInfoEdit />} />
@@ -164,7 +121,6 @@ export default function App() {
         <Route path="/mypage/notification-settings/custom" element={<NotificationCustomSettings />} />
         <Route path="/mypage/app-settings" element={<AppSettings />} />
 
-
         {/* ✅ Admin Routes */}
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<Navigate to="/admin/reports" replace />} />
@@ -175,9 +131,7 @@ export default function App() {
           <Route path="inquiries/:id" element={<AdminInquiryDetail />} />
         </Route>
 
-        {/* 로그인 상태에서 로그인 페이지 접근 시 홈으로 리다이렉트 */}
-        <Route path="/login" element={<Navigate to="/" />} />
-        <Route path="/signup" element={<Navigate to="/" />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </div>
   );

@@ -1,17 +1,31 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import { ICONS, ICON_CONFIG } from "../constants/icons";
 import { usePilaCon } from "../store/pilaconStore";
 import { resetAppScrollPosition } from "../utils/scroll";
 import "./BottomNav.css";
 
 export default function BottomNav() {
-  const { unreadMessageCount } = usePilaCon();
+  const { user, unreadMessageCount, confirm } = usePilaCon();
+  const navigate = useNavigate();
   const navItems = [
-    { to: "/", label: "홈", iconKey: "home" },
-    { to: "/activity", label: "내 활동", iconKey: "activity" },
-    { to: "/chat", label: "채팅", iconKey: "chat" },
-    { to: "/mypage", label: "내 정보", iconKey: "profile" },
+    { to: "/", label: "홈", iconKey: "home", requiresAuth: false },
+    { to: "/activity", label: "내 활동", iconKey: "activity", requiresAuth: true },
+    { to: "/chat", label: "채팅", iconKey: "chat", requiresAuth: true },
+    { to: "/mypage", label: "내 정보", iconKey: "profile", requiresAuth: false },
   ];
+
+  const handleNavClick = async (e, item) => {
+    resetAppScrollPosition();
+    if (item.requiresAuth && !user) {
+      e.preventDefault();
+      const ok = await confirm("알림", "로그인 후 이용하세요.");
+      if (ok) {
+        navigate(`/login?next=${encodeURIComponent(item.to)}`);
+      } else {
+        navigate("/");
+      }
+    }
+  };
 
   return (
     <nav className="bottom-nav">
@@ -22,7 +36,7 @@ export default function BottomNav() {
             key={item.to}
             to={item.to}
             end={item.to === "/"}
-            onClick={() => resetAppScrollPosition()}
+            onClick={(e) => handleNavClick(e, item)}
             className={({ isActive }) =>
               isActive ? "nav-item active" : "nav-item"
             }
