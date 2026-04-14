@@ -8,6 +8,7 @@ import Home from "./pages/Home";
 import JobPostDetail from "./pages/JobPostDetail";
 import Write from "./pages/Write";
 import MyPage from "./pages/MyPage";
+import ProfileDetail from "./pages/ProfileDetail";
 import Activity from "./pages/Activity";
 import Chat from "./pages/Chat";
 import ChatRoom from "./pages/ChatRoom";
@@ -93,6 +94,7 @@ export default function App() {
           <Route path="/chat" element={<Chat />} />
           <Route path="/jobs/:id" element={<JobPostDetail />} />
           <Route path="/mypage" element={<MyPage />} />
+          <Route path="/profile" element={<ProfileDetail />} />
           <Route path="/mypage/favorites" element={<Favorites />} />
           <Route path="/terms" element={<TermsOfService />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
@@ -110,7 +112,8 @@ export default function App() {
         <Route path="/set-nickname" element={<SetNickname />} />
         <Route path="/select-role" element={<SelectRole />} />
         
-        <Route path="/profile/edit" element={<InstructorProfileManager />} />
+        <Route path="/profile/edit" element={<UserInfoEdit />} />
+        <Route path="/profile/instructor/edit" element={<InstructorProfileManager />} />
         <Route path="/profile/centers" element={<CenterManagement />} />
         <Route path="/mypage/profile/edit" element={<UserInfoEdit />} />
         <Route path="/jobs/:id/edit" element={<JobEdit />} />

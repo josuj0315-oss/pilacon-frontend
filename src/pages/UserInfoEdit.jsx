@@ -1,25 +1,33 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePilaCon } from '../store/pilaconStore';
-import { ArrowLeft, Camera, User, Mail } from 'lucide-react';
+import { ICONS, ICON_CONFIG } from '../constants/icons';
+import useDevice from '../hooks/useDevice';
+import { Camera } from 'lucide-react';
 
 export default function UserInfoEdit() {
-  const { user, updateUser, uploadFile, checkNickname, showToast } = usePilaCon();
+  const { isDesktop } = useDevice();
+  const { user, updateUser, uploadFile, checkNickname, showToast, confirm } = usePilaCon();
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const [isEditable, setIsEditable] = useState(false);
-  const [isNicknameChecked, setIsNicknameChecked] = useState(true); // Initial state is checked because it's current nickname
-  const [checkingNickname, setCheckingNickname] = useState(false);
-  const [nicknameError, setNicknameError] = useState('');
-  const nicknameInputRef = useRef(null);
 
   const [formData, setFormData] = useState({
     nickname: user?.nickname || '',
     profileImage: user?.profileImage || '',
+    role: user?.role || 'INSTRUCTOR',
   });
 
   const [previewImage, setPreviewImage] = useState(user?.profileImage || '');
+  const [isUploading, setIsUploading] = useState(false);
+  const [isNicknameChecked, setIsNicknameChecked] = useState(true);
+  const [checkingNickname, setCheckingNickname] = useState(false);
+  const [nicknameError, setNicknameError] = useState('');
+
+  useEffect(() => {
+    if (!user) {
+      navigate('/login');
+    }
+  }, [user, navigate]);
 
   const handleImageClick = () => {
     fileInputRef.current?.click();
@@ -28,14 +36,12 @@ export default function UserInfoEdit() {
   const handleFileChange = async (e) => {
     const file = e.target.files?.[0];
     if (file) {
-      // 1. UI Preview
+      // Preview
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreviewImage(reader.result);
-      };
+      reader.onloadend = () => setPreviewImage(reader.result);
       reader.readAsDataURL(file);
 
-      // 2. Upload to S3
+      // Upload
       setIsUploading(true);
       const res = await uploadFile(file);
       setIsUploading(false);
@@ -53,7 +59,6 @@ export default function UserInfoEdit() {
     if (!formData.nickname.trim()) return;
     if (formData.nickname === user?.nickname) {
       setIsNicknameChecked(true);
-      setIsEditable(false);
       return;
     }
 
@@ -74,42 +79,58 @@ export default function UserInfoEdit() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (isUploading) return;
+    
+    // Validate role change confirmation if role is different
+    if (formData.role !== user?.role) {
+      const ok = await confirm(
+        '회원 유형 변경',
+        '회원 유형 변경 시 일부 정보가 초기화될 수 있습니다. 계속하시겠습니까?'
+      );
+      if (!ok) return;
+    }
+
     if (!isNicknameChecked && formData.nickname !== user?.nickname) {
       setNicknameError('닉네임 중복확인을 해주세요.');
       showToast('닉네임 중복확인을 해주세요.', 'error');
-      nicknameInputRef.current?.focus();
       return;
     }
+
     const res = await updateUser(formData);
     if (res.ok) {
-      showToast('프로필 정보가 수정되었습니다.');
-      navigate('/mypage');
+      showToast('프로필 정보가 수정되었습니다.', 'success');
+      navigate('/profile');
     } else {
       showToast(res.error, 'error');
     }
   };
 
+  if (!user) return null;
+
   return (
-    <div className="user-info-edit-page">
-      <header className="edit-header">
-        <button className="back-btn" onClick={() => navigate('/mypage')}>
-          <ArrowLeft size={24} color="#1e293b" />
-        </button>
-        <h1 className="header-title">프로필 수정</h1>
-      </header>
+    <div className={`page profile-edit-page ${isDesktop ? 'desktop' : ''}`}>
+      {isDesktop ? (
+        <div className="desktop-page-header">
+          <h1 className="unified-title">프로필 수정</h1>
+        </div>
+      ) : (
+        <header className="page-header">
+          <button className="back-btn" onClick={() => navigate('/profile')}>
+            <ICONS.chevronLeft size={24} color="#1e293b" />
+          </button>
+          <h2 className="unified-title">프로필 수정</h2>
+          <div style={{ width: 44 }} />
+        </header>
+      )}
 
-      <main className="edit-main">
-        <form onSubmit={handleSubmit} className="edit-form">
-
-          <div className="avatar-section">
-            <div className="avatar-container" onClick={handleImageClick} style={{ cursor: 'pointer' }}>
-              <div className="avatar-wrapper">
+      <div className="profile-edit-content">
+        <form onSubmit={handleSubmit} className="profile-edit-section">
+          <div className="profile-main">
+            <div className="avatar-edit-wrapper" onClick={handleImageClick}>
+              <div className="profile-avatar">
                 {previewImage ? (
-                  <img src={previewImage} alt="Profile" className="avatar-img" style={{ opacity: isUploading ? 0.5 : 1 }} />
+                  <img src={previewImage} alt="Profile" className="profile-img" style={{ opacity: isUploading ? 0.5 : 1 }} />
                 ) : (
-                  <div className="avatar-placeholder">
-                    <User size={40} color="#cbd5e1" />
-                  </div>
+                  <ICONS.profile size={32} color={ICON_CONFIG.color.active} />
                 )}
                 {isUploading && (
                   <div className="upload-loader">
@@ -118,7 +139,7 @@ export default function UserInfoEdit() {
                 )}
               </div>
               <div className="camera-badge">
-                <Camera size={18} color="#fff" />
+                <Camera size={14} color="#fff" />
               </div>
             </div>
             <input
@@ -128,48 +149,67 @@ export default function UserInfoEdit() {
               accept="image/*"
               onChange={handleFileChange}
             />
-            <p className="avatar-hint">대표 이미지를 등록해주세요</p>
+
+            <div className="profile-info">
+              <h2 className="profile-name">{formData.nickname || user.nickname}</h2>
+              <p className="profile-email">{user.email}</p>
+            </div>
           </div>
 
-          <div className="input-section">
-            <div className="input-group">
-              <label className="field-label">닉네임</label>
-              <div className="input-wrapper nickname-wrapper">
-                <User size={18} className="input-icon" />
+          <div className="profile-meta-list">
+            <div className="profile-meta-row edit-row">
+              <span className="label">닉네임</span>
+              <div className="input-group">
                 <input
                   type="text"
                   className="edit-input"
-                  placeholder="닉네임을 입력하세요"
-                  ref={nicknameInputRef}
                   value={formData.nickname}
                   onChange={(e) => {
                     setFormData({ ...formData, nickname: e.target.value });
                     setIsNicknameChecked(false);
                     setNicknameError('');
                   }}
-                  disabled={!isEditable}
                   required
                 />
-                {!isEditable ? (
-                  <button type="button" className="action-btn-small" onClick={() => setIsEditable(true)}>
-                    변경
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    className="action-btn-small check-btn"
-                    onClick={handleNicknameCheck}
-                    disabled={checkingNickname || (formData.nickname === user?.nickname)}
-                  >
-                    {checkingNickname ? '...' : '중복확인'}
-                  </button>
-                )}
+                <button
+                  type="button"
+                  className={`check-btn ${isNicknameChecked ? 'checked' : ''}`}
+                  onClick={handleNicknameCheck}
+                  disabled={checkingNickname || (formData.nickname === user?.nickname)}
+                >
+                  {checkingNickname ? '...' : (isNicknameChecked && formData.nickname !== user?.nickname ? '확인완료' : '중복확인')}
+                </button>
               </div>
-              {nicknameError && <p className="field-error">{nicknameError}</p>}
+            </div>
+            {nicknameError && <p className="error-text">{nicknameError}</p>}
+
+            <div className="profile-meta-row">
+              <span className="label">이메일</span>
+              <strong className="value disabled">{user.email}</strong>
+            </div>
+
+            <div className="profile-meta-row">
+              <span className="label">전화번호</span>
+              <strong className="value disabled">{user.phone || '-'}</strong>
+            </div>
+
+            <div className="profile-meta-row edit-row">
+              <span className="label">회원 유형</span>
+              <div className="role-select-wrapper">
+                <select 
+                  className="role-select" 
+                  value={formData.role} 
+                  onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                >
+                  <option value="INSTRUCTOR">강사</option>
+                  <option value="CENTER">센터</option>
+                </select>
+                <ICONS.chevronDown size={14} color="#94a3b8" className="select-icon" />
+              </div>
             </div>
           </div>
 
-          <div className="fixed-bottom-cta">
+          <div className="form-actions">
             <button
               type="submit"
               className="save-btn"
@@ -179,233 +219,267 @@ export default function UserInfoEdit() {
             </button>
           </div>
         </form>
-      </main>
+      </div>
 
       <style>{`
-        .user-info-edit-page {
+        .profile-edit-page {
+          background: #f8fafc;
           min-height: 100vh;
-          background: #f8faff;
         }
-        .edit-header {
-          position: sticky;
-          top: 0;
-          z-index: 1000;
-          background: rgba(255, 255, 255, 0.9);
-          backdrop-filter: blur(10px);
-          display: flex;
-          align-items: center;
-          padding: 12px 16px;
-          border-bottom: 1px solid rgba(0,0,0,0.03);
+        .desktop-page-header {
+          padding: 24px 16px 8px;
+          max-width: 600px;
+          margin: 0 auto;
         }
-        .back-btn {
-          width: 40px;
-          height: 40px;
-          border-radius: 12px;
-          border: none;
-          background: transparent;
-          display: grid;
-          place-items: center;
-          cursor: pointer;
-        }
-        .header-title {
-          margin: 0 0 0 8px;
-          font-size: 18px;
+        .desktop-page-header .unified-title {
+          font-size: 24px;
           font-weight: 800;
           color: #1e293b;
         }
-        .edit-main {
-          padding: 32px 20px;
+        .page-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 0 16px;
+          height: 56px;
+          background: #fff;
+          border-bottom: 1px solid #eef2f6;
+          position: sticky;
+          top: 0;
+          z-index: 100;
+        }
+        .back-btn {
+          width: 44px;
+          height: 44px;
+          display: grid;
+          place-items: center;
+          background: transparent;
+          border: none;
+          cursor: pointer;
+        }
+        .unified-title {
+          font-size: 17px;
+          font-weight: 800;
+          color: #1e293b;
+        }
+        .profile-edit-content {
+          padding: 16px;
           max-width: 600px;
           margin: 0 auto;
-          padding-bottom: 120px;
         }
-        .avatar-section {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          margin-bottom: 24px;
-        }
-        .avatar-container {
-          position: relative;
-          width: 100px;
-          height: 100px;
-          transition: transform 0.2s;
-        }
-        .avatar-container:active {
-          transform: scale(0.95);
-        }
-        .avatar-wrapper {
-          width: 100%;
-          height: 100%;
-          border-radius: 35px;
+        .profile-edit-section {
           background: #fff;
-          box-shadow: 0 8px 16px rgba(0,0,0,0.05);
+          border-radius: 20px;
+          padding: 24px;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+        }
+        .profile-main {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          margin-bottom: 32px;
+        }
+        .profile-avatar {
+          width: 64px;
+          height: 64px;
+          border-radius: 50%;
+          background: #f1f5f9;
           display: grid;
           place-items: center;
           overflow: hidden;
+          flex-shrink: 0;
+          border: 1px solid #e2e8f0;
+        }
+        .avatar-edit-wrapper {
+          position: relative;
+          width: 64px;
+          height: 64px;
+          cursor: pointer;
+          flex-shrink: 0;
+        }
+        .camera-badge {
+          position: absolute;
+          right: -2px;
+          bottom: -2px;
+          width: 24px;
+          height: 24px;
+          background: #5b5ff5;
+          border-radius: 50%;
+          display: grid;
+          place-items: center;
           border: 2px solid #fff;
+          z-index: 10;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-        .avatar-wrapper:active {
-          transform: none;
-        }
-        .avatar-img {
+        .profile-img {
           width: 100%;
           height: 100%;
           object-fit: cover;
         }
-        .avatar-placeholder {
-          width: 100%;
-          height: 100%;
-          background: #f1f5f9;
-          display: grid;
-          place-items: center;
-        }
-        .camera-badge {
-          position: absolute;
-          right: -8px;
-          bottom: -4px;
-          width: 36px;
-          height: 36px;
-          background: #5b5ff5;
-          border-radius: 14px;
-          display: grid;
-          place-items: center;
-          border: 3px solid #f8faff;
-          box-shadow: 0 4px 8px rgba(91, 95, 245, 0.3);
-          pointer-events: none;
-          z-index: 10;
-        }
         .upload-loader {
           position: absolute;
           inset: 0;
+          background: rgba(0,0,0,0.2);
           display: grid;
           place-items: center;
-          background: rgba(0,0,0,0.1);
         }
         .spinner {
-          width: 24px;
-          height: 24px;
-          border: 3px solid rgba(91, 95, 245, 0.2);
-          border-top-color: #5b5ff5;
+          width: 20px;
+          height: 20px;
+          border: 2px solid rgba(255,255,255,0.3);
+          border-top-color: #fff;
           border-radius: 50%;
           animation: spin 0.8s linear infinite;
         }
         @keyframes spin {
           to { transform: rotate(360deg); }
         }
-        .avatar-hint {
-          margin-top: 14px;
-          font-size: 13px;
-          font-weight: 700;
-          color: #64748b;
+        .profile-info {
+          flex: 1;
+          min-width: 0;
         }
-        .input-section {
-          display: grid;
-          gap: 24px;
-        }
-        .input-group {
-          display: flex;
-          flex-direction: column;
-        }
-        .field-label {
-          font-size: 14px;
+        .profile-name {
+          font-size: 18px;
           font-weight: 800;
           color: #1e293b;
-          margin-left: 4px;
-          margin-bottom: 12px;
-          display: block;
+          margin-bottom: 4px;
         }
-        .input-wrapper {
+        .profile-email {
+          font-size: 14px;
+          color: #64748b;
+          font-weight: 500;
+        }
+        .profile-meta-list {
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+          border-top: 1px solid #f1f5f9;
+          padding-top: 24px;
+        }
+        .profile-meta-row {
+          display: flex;
+          align-items: flex-start;
+          gap: 12px;
+          min-height: 48px;
+          flex-wrap: nowrap;
+          padding-top: 4px;
+        }
+        .profile-meta-row .label {
+          font-size: 14px;
+          font-weight: 600;
+          color: #64748b;
+          width: 60px;
+          flex-shrink: 0;
+        }
+        .profile-meta-row.edit-row {
+          align-items: flex-start;
+          padding-top: 4px;
+        }
+        .profile-meta-row .value {
+          font-size: 14px;
+          font-weight: 700;
+          color: #1e293b;
+          flex: 1;
+          text-align: right;
+        }
+        .profile-meta-row .value.disabled {
+          color: #94a3b8;
+        }
+        .input-group {
+          display: flex !important;
+          flex-direction: row !important;
+          flex-wrap: nowrap !important;
+          align-items: flex-start !important;
+          gap: 8px !important;
+          flex: 1;
+          min-width: 0;
+        }
+        .edit-input {
+          flex: 1 !important;
+          width: auto !important;
+          min-width: 0 !important;
+          height: 40px;
+          padding: 0 12px;
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          border-radius: 10px;
+          font-size: 14px;
+          font-weight: 700;
+          color: #1e293b;
+          outline: none;
+          transition: all 0.2s;
+        }
+        .edit-input:focus {
+          border-color: #5b5ff5;
+          background: #fff;
+          box-shadow: 0 0 0 3px rgba(91, 95, 245, 0.05);
+        }
+        .check-btn {
+          flex-shrink: 0 !important;
+          height: 40px;
+          padding: 0 12px;
+          background: #eef2ff;
+          color: #5b5ff5;
+          border: none;
+          border-radius: 10px;
+          font-size: 12px;
+          font-weight: 700;
+          cursor: pointer;
+          white-space: nowrap;
+        }
+        .check-btn:disabled {
+          background: #f1f5f9;
+          color: #94a3b8;
+          cursor: not-allowed;
+        }
+        .check-btn.checked {
+          background: #f0fdf4;
+          color: #22c55e;
+        }
+        .error-text {
+          font-size: 11px;
+          color: #ef4444;
+          font-weight: 600;
+          margin-top: 4px;
+          margin-left: 72px;
+        }
+        .role-select-wrapper {
           position: relative;
           display: flex;
           align-items: center;
         }
-        .nickname-wrapper .edit-input {
-          padding-right: 100px;
+        .role-select {
+          appearance: none;
+          padding: 8px 32px 8px 12px;
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          border-radius: 10px;
+          font-size: 14px;
+          font-weight: 700;
+          color: #1e293b;
+          cursor: pointer;
+          outline: none;
         }
-        .action-btn-small {
+        .select-icon {
           position: absolute;
           right: 10px;
-          top: 50%;
-          transform: translateY(-50%);
-          width: 82px;
-          height: 38px;
-          background: #f1f5f9;
-          color: #64748b;
-          border: none;
-          border-radius: 12px;
-          font-size: 13px;
-          font-weight: 700;
-          cursor: pointer;
-          transition: all 0.2s;
-          display: grid;
-          place-items: center;
-          z-index: 10;
+          pointer-events: none;
         }
-        .action-btn-small:active {
-          background: #e2e8f0;
-          transform: translateY(-50%) scale(0.96);
-        }
-        .action-btn-small.check-btn {
-          background: #eef2ff;
-          color: #5b5ff5;
-        }
-        .action-btn-small.check-btn:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-          background: #f1f5f9;
-          color: #94a3b8;
-        }
-        .input-icon {
-          position: absolute;
-          left: 20px;
-          top: 50%;
-          transform: translateY(-50%);
-          color: #94a3b8;
-          z-index: 5;
-        }
-        .edit-input {
-          width: 100%;
-          height: 56px;
-          padding-left: 56px !important;
-          padding-right: 20px;
-          background: #fff;
-          border: 1px solid #e2e8f0;
-          border-radius: 20px;
-          font-size: 15px;
-          font-weight: 600;
-          color: #1e293b;
-          outline: none;
-          transition: all 0.2s;
-          display: flex;
-          align-items: center;
-          line-height: normal;
-        }
-        .edit-input:focus {
-          border-color: #5b5ff5;
-          box-shadow: 0 0 0 4px rgba(91, 95, 245, 0.08);
-        }
-        .fixed-bottom-cta {
-          position: fixed;
-          bottom: 24px;
-          left: 0;
-          right: 0;
-          padding: 0 24px;
-          max-width: 600px;
-          margin: 0 auto;
+        .form-actions {
+          margin-top: 32px;
         }
         .save-btn {
           width: 100%;
-          height: 58px;
+          height: 52px;
           background: #5b5ff5;
           color: #fff;
           border: none;
-          border-radius: 20px;
-          font-size: 17px;
+          border-radius: 14px;
+          font-size: 16px;
           font-weight: 800;
           cursor: pointer;
-          box-shadow: 0 12px 24px rgba(91, 95, 245, 0.25);
-          transition: transform 0.2s;
+          transition: all 0.2s;
+          box-shadow: 0 4px 12px rgba(91, 95, 245, 0.2);
         }
         .save-btn:disabled {
           background: #cbd5e1;
@@ -414,20 +488,6 @@ export default function UserInfoEdit() {
         }
         .save-btn:active:not(:disabled) {
           transform: scale(0.98);
-        }
-        .field-error {
-          color: #ef4444;
-          font-size: 12px;
-          font-weight: 600;
-          margin-top: 6px;
-          margin-left: 4px;
-          animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
-        }
-        @keyframes shake {
-          10%, 90% { transform: translate3d(-1px, 0, 0); }
-          20%, 80% { transform: translate3d(2px, 0, 0); }
-          30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
-          40%, 60% { transform: translate3d(4px, 0, 0); }
         }
       `}</style>
     </div>

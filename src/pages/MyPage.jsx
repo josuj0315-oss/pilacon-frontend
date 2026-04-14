@@ -21,7 +21,7 @@ export default function MyPage() {
     {
       title: '활동 관리',
       items: [
-        { label: '강사 이력서 등록 및 관리', icon: ICONS.profile, path: '/profile/edit' },
+        { label: '강사 이력서 등록 및 관리', icon: ICONS.profile, path: '/profile/instructor/edit' },
         { label: '센터 관리', icon: ICONS.studio || ICONS.briefcase, path: '/profile/centers' },
         { label: '즐겨찾기', icon: ICONS.star, path: '/mypage/favorites' },
         { label: '최근 본 공고', icon: ICONS.clock, path: '/mypage/recent-jobs' },
@@ -70,10 +70,9 @@ export default function MyPage() {
               </div>
               <div className="profile-info">
                 <h2 className="profile-name">{user?.nickname || user?.name || '사용자'}</h2>
-                <p className="profile-email">{user?.email || '이메일 정보 없음'}</p>
               </div>
-              <button className="profile-edit-btn" onClick={() => navigate('/mypage/profile/edit')}>
-                프로필 수정
+              <button className="profile-edit-btn" onClick={() => navigate('/profile')}>
+                내 정보
               </button>
             </div>
           ) : (
@@ -354,38 +353,23 @@ export default function MyPage() {
           .my-page-desktop .mypage-content {
             position: relative;
             z-index: 1;
-            display: grid;
-            grid-template-columns: 300px minmax(0, 1fr);
+            display: flex;
+            flex-direction: column;
             gap: 14px;
             padding: 10px 12px 14px;
-            width: min(1060px, 100%);
+            width: min(800px, 100%);
             margin: 0 auto;
-            align-items: start;
           }
           .my-page-desktop .profile-section {
             margin-bottom: 0;
             border: 1px solid #e2e8f0;
             border-radius: 14px;
-            position: sticky;
-            top: 62px;
           }
           .my-page-desktop .profile-main {
             align-items: center;
           }
           .my-page-desktop .profile-info {
             min-width: 0;
-          }
-          .my-page-desktop .profile-email {
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-          }
-          .my-page-desktop .profile-meta-list {
-            margin-top: 14px;
-            border-top: 1px solid #eef2f7;
-            padding-top: 12px;
-            display: grid;
-            gap: 8px;
           }
           .my-page-desktop .menu-groups {
             gap: 10px;
@@ -398,7 +382,6 @@ export default function MyPage() {
           .my-page-desktop .logout-section {
             padding: 0;
             margin-top: 10px;
-            grid-column: 2;
           }
         }
       `}</style>

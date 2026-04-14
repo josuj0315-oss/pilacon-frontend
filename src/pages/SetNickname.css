@@ -19,6 +19,8 @@
 
 .logo-area {
     margin-bottom: 30px;
+    display: flex;
+    justify-content: center;
 }
 
 .set-nickname-title {

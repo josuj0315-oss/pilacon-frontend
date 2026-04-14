@@ -14,13 +14,22 @@ export default function RecentlyViewedJobs() {
 
     return (
         <div className="recent-jobs-page">
-            <header className="unified-header">
-                <button className="back-btn" onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', padding: '8px', cursor: 'pointer' }}>
-                    <ICONS.back size={24} color="#1e293b" />
-                </button>
-                <h2 className="unified-title">최근 본 공고</h2>
-                <div style={{ width: 40 }} />
-            </header>
+            {isDesktop ? (
+                <header className="unified-header">
+                    <button className="back-btn-pc" onClick={() => navigate(-1)}>
+                        <ICONS.back size={24} color="#1e293b" />
+                    </button>
+                    <h2 className="unified-title">최근 본 공고</h2>
+                    <div style={{ width: 40 }} />
+                </header>
+            ) : (
+                <header className="manager-header">
+                    <button className="back-btn" onClick={() => navigate(-1)}>
+                        <ICONS.back size={24} color="#1e293b" />
+                    </button>
+                    <h1 className="header-title">최근 본 공고</h1>
+                </header>
+            )}
 
             <main className={`content ${isDesktop ? 'desktop' : ''}`}>
                 {isDesktop && (
@@ -61,16 +70,48 @@ export default function RecentlyViewedJobs() {
                     top: 0;
                     z-index: 100;
                 }
+                .back-btn-pc {
+                    background: none;
+                    border: none;
+                    padding: 8px;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
                 .unified-title {
                     font-size: 16px;
                     font-weight: 800;
                     margin: 0;
                     color: #1e293b;
                 }
-                .back-btn {
+                .manager-header {
+                    position: sticky;
+                    top: 0;
+                    z-index: 100;
+                    background: rgba(255, 255, 255, 0.9);
+                    backdrop-filter: blur(10px);
                     display: flex;
                     align-items: center;
-                    justify-content: center;
+                    padding: 12px 16px;
+                    border-bottom: 1px solid rgba(0,0,0,0.03);
+                    height: 56px;
+                }
+                .back-btn {
+                    width: 40px;
+                    height: 40px;
+                    border-radius: 12px;
+                    border: none;
+                    background: transparent;
+                    display: grid;
+                    place-items: center;
+                    cursor: pointer;
+                }
+                .header-title {
+                    margin: 0 0 0 8px;
+                    font-size: 18px;
+                    font-weight: 800;
+                    color: #1e293b;
                 }
                 .content {
                     padding: 40px 20px;

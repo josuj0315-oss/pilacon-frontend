@@ -22,14 +22,18 @@ export default function AppLayout() {
   const searchParams = new URLSearchParams(location.search);
   const view = searchParams.get("view");
   const isDetailView = view === "appliedDetail" || view === "jobDetail";
-  const hideMobileHeader = !isDesktop && location.pathname.startsWith("/jobs/");
+  const isMyPageSub = 
+    location.pathname === "/mypage/favorites" ||
+    location.pathname === "/mypage/recent-jobs" ||
+    location.pathname === "/mypage/blocked-users";
+
+  const hideMobileHeader = !isDesktop && (location.pathname.startsWith("/jobs/") || isMyPageSub);
 
   // ✅ 하단탭 숨길 화면이 있다면 여기서 관리 (예: 상세페이지)
   const hideNav =
     location.pathname.startsWith("/jobs/") ||
     location.pathname.startsWith("/activity/applicants") ||
-    location.pathname === "/mypage/recent-jobs" ||
-    location.pathname === "/mypage/blocked-users" ||
+    isMyPageSub ||
     isDetailView; // 필요하면 추가
 
   const isHome = location.pathname === "/" || location.pathname === "/home";
