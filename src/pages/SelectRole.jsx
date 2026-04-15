@@ -24,7 +24,7 @@ export default function SelectRole() {
                         "이력서를 지금 바로 등록하시겠어요? 이력서를 등록하면 더 많은 구인 공고를 만날 수 있습니다.",
                         { confirmText: "이력서 등록하기", cancelText: "나중에 하기" }
                     );
-                    if (proceed) navigate('/profile/edit', { replace: true });
+                    if (proceed) navigate('/profile/edit?mode=new', { replace: true });
                     else navigate('/', { replace: true });
                 } else if (role === 'CENTER') {
                     const proceed = await confirm(

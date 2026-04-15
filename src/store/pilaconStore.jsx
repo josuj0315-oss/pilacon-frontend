@@ -127,7 +127,7 @@ const DEFAULT_NOTIFICATION_SETTINGS = {
     regions: [],
     workouts: [],
     employmentTypes: [], 
-    newPost: true,
+    newJob: true,
     deadline: true,
     closed: true,
   },
@@ -395,6 +395,16 @@ export function PilaConProvider({ children }) {
         if (token) {
           try {
             await fetchMyData(token);
+            // ✅ 알림 설정 동기화 추가
+            try {
+              const settingsRes = await axios.get(`${API_BASE_URL}/notifications/settings`);
+              if (settingsRes.data?.settings) {
+                setNotificationSettings(prev => ({
+                  ...prev,
+                  ...settingsRes.data.settings
+                }));
+              }
+            } catch (se) { console.warn('Failed to fetch notification settings:', se); }
           } finally {
             setIsAuthLoading(false);
           }
@@ -1359,11 +1369,24 @@ export function PilaConProvider({ children }) {
       lastChatMessage,
       setLastChatMessage,
       notificationSettings,
-      updateNotificationSettings: (updater) => {
+      updateNotificationSettings: async (updater) => {
+        let next;
         setNotificationSettings(prev => {
-          const next = typeof updater === 'function' ? updater(prev) : updater;
-          return { ...prev, ...next };
+          const update = typeof updater === 'function' ? updater(prev) : updater;
+          next = { ...prev, ...update };
+          return next;
         });
+        
+        // 서버 동기화
+        if (user) {
+          try {
+            // posts 구조가 핵심이므로 settings 필드에 전체 담아서 보냄 (또는 필요한 것만)
+            await axios.patch(`${API_BASE_URL}/notifications/settings`, {
+              allowMatchingJob: true, // 맞춤 알림을 사용하므로 항상 true로 설정하거나 UI에 맞춰 연동
+              settings: next 
+            });
+          } catch (e) { console.error('Failed to sync notification settings', e); }
+        }
       },
       getNotifications,
       markNotificationAsRead,

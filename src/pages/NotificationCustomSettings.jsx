@@ -130,7 +130,7 @@ export default function NotificationCustomSettings() {
                         <div className="check-item">
                             <span>새 공고 알림</span>
                             <label className="switch small">
-                                <input type="checkbox" checked={posts.newPost} onChange={() => toggleEvent('newPost')} />
+                                <input type="checkbox" checked={posts.newJob} onChange={() => toggleEvent('newJob')} />
                                 <span className="slider round"></span>
                             </label>
                         </div>
