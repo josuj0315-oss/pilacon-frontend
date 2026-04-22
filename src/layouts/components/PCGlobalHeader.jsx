@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from "react-router-dom";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ICONS } from "../../constants/icons";
 import { usePilaCon } from "../../store/pilaconStore";
 import { resetAppScrollPosition } from "../../utils/scroll";
@@ -22,13 +22,13 @@ export default function PCGlobalHeader({
   onSearchSubmit,
 }) {
   const navigate = useNavigate();
-  const { user, showToast, getNotifications, markNotificationAsRead, confirm } = usePilaCon();
+  const { user, notifications, getNotifications, markNotificationAsRead, confirm } = usePilaCon();
   const isLoggedIn = !!user;
   const chatBadge = unreadMessageCount > 99 ? "99+" : unreadMessageCount;
   const [openNotif, setOpenNotif] = useState(false);
   const [loadingNotif, setLoadingNotif] = useState(false);
-  const [previewList, setPreviewList] = useState([]);
   const notifRef = useRef(null);
+  const previewList = useMemo(() => notifications.slice(0, 5), [notifications]);
 
   useEffect(() => {
     if (!openNotif) return;
@@ -48,17 +48,13 @@ export default function PCGlobalHeader({
     if (!next) return;
 
     setLoadingNotif(true);
-    const data = await getNotifications(1);
-    setPreviewList((data?.items || []).slice(0, 5));
+    await getNotifications(1);
     setLoadingNotif(false);
   };
 
   const handleNotifItemClick = async (item) => {
     if (!item?.id) return;
     await markNotificationAsRead(item.id);
-    setPreviewList((prev) =>
-      prev.map((n) => (String(n.id) === String(item.id) ? { ...n, isRead: true } : n))
-    );
     if (item.deepLink) {
       setOpenNotif(false);
       navigate(item.deepLink);

@@ -13,6 +13,7 @@ const TABS = [
 export default function Notifications() {
     const {
         getNotifications,
+        notifications,
         markNotificationAsRead,
         markAllNotificationsAsRead,
         unreadCount,
@@ -20,7 +21,6 @@ export default function Notifications() {
         confirm
     } = usePilaCon();
 
-    const [list, setList] = useState([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('all');
     const navigate = useNavigate();
@@ -28,17 +28,16 @@ export default function Notifications() {
     useEffect(() => {
         const fetch = async () => {
             setLoading(true);
-            const data = await getNotifications();
-            setList(data.items);
+            await getNotifications();
             setLoading(false);
         };
         fetch();
-    }, [getNotifications]);
+    }, []);
 
     const filteredList = useMemo(() => {
-        if (activeTab === 'all') return list;
+        if (activeTab === 'all') return notifications;
 
-        return list.filter(n => {
+        return notifications.filter(n => {
             const type = n.type || '';
             const resourceType = (n.resourceType || '').toLowerCase();
 
@@ -53,11 +52,10 @@ export default function Notifications() {
             }
             return true;
         });
-    }, [list, activeTab]);
+    }, [notifications, activeTab]);
 
     const handleRead = async (id, deepLink) => {
         await markNotificationAsRead(id);
-        setList(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
         if (deepLink) {
             navigate(deepLink);
         }
@@ -67,7 +65,6 @@ export default function Notifications() {
         const ok = await confirm('알림 전체 읽음', '모든 알림을 읽음 처리하시겠습니까?');
         if (ok) {
             await markAllNotificationsAsRead();
-            setList(prev => prev.map(n => ({ ...n, isRead: true })));
             showToast("모든 알림을 읽음 처리했습니다.", "success");
         }
     };

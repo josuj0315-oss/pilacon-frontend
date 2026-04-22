@@ -226,6 +226,47 @@ export function getApplicationStatusLabel(status) {
   return map[status] || status || "심사중";
 }
 
+function parseSsePayload(rawData) {
+  if (!rawData) return null;
+  if (rawData === "heartbeat") return { event: "heartbeat" };
+
+  try {
+    return JSON.parse(rawData);
+  } catch (error) {
+    console.warn("Failed to parse SSE payload:", rawData, error);
+    return null;
+  }
+}
+
+function isHeartbeatPayload(payload) {
+  if (!payload) return true;
+  const eventType = String(payload.event || payload.type || "").toLowerCase();
+  return eventType === "heartbeat" || eventType === "ping";
+}
+
+function mergeNotifications(primary = [], secondary = []) {
+  const merged = [...primary, ...secondary]
+    .filter(Boolean)
+    .reduce((acc, item) => {
+      const key = item?.id != null
+        ? String(item.id)
+        : `${item?.type || ""}:${item?.resourceType || ""}:${item?.resourceId || ""}:${item?.createdAt || item?.created_at || ""}`;
+
+      if (!acc.seen.has(key)) {
+        acc.seen.add(key);
+        acc.items.push(item);
+      }
+      return acc;
+    }, { seen: new Set(), items: [] })
+    .items;
+
+  return merged.sort((a, b) => {
+    const aTime = new Date(a?.createdAt || a?.created_at || 0).getTime();
+    const bTime = new Date(b?.createdAt || b?.created_at || 0).getTime();
+    return bTime - aTime;
+  });
+}
+
 export function PilaConProvider({ children }) {
   const [jobs, setJobs] = useState([]);
   const [profile, setProfile] = useState(null);
@@ -1122,6 +1163,7 @@ export function PilaConProvider({ children }) {
           const type = (n.resourceType || '').toLowerCase();
           return type !== 'chat' && type !== 'message';
         });
+        setNotifications(prev => mergeNotifications(res.data.items, prev));
       }
       return res.data;
     } catch (e) {
@@ -1192,9 +1234,13 @@ export function PilaConProvider({ children }) {
       // EventSource는 헤더 전송을 못하므로 쿼리파라미터로 처리
       eventSource = new EventSource(`${API_BASE_URL}/notifications/stream?token=${token}`);
 
-      eventSource.onmessage = (event) => {
-        const payload = JSON.parse(event.data);
-        const newNotif = payload.data;
+      const handleNotificationEvent = (event) => {
+        const payload = parseSsePayload(event?.data);
+        if (isHeartbeatPayload(payload)) return;
+
+        const newNotif = payload?.data || payload?.notification || payload;
+        if (!newNotif || typeof newNotif !== "object") return;
+
         const resType = (newNotif.resourceType || '').toLowerCase();
         const deepLink = newNotif.deepLink || "";
         const roomIdFromLink = deepLink.startsWith("/chat/") ? deepLink.split("/chat/")[1]?.split("?")[0] : null;
@@ -1210,10 +1256,22 @@ export function PilaConProvider({ children }) {
             setLastChatMessage(newNotif);
           }
         } else {
-          setNotifications(prev => [newNotif, ...prev]);
-          setUnreadCount(prev => prev + 1);
+          setNotifications(prev => {
+            const alreadyExists = prev.some((item) => String(item?.id) === String(newNotif?.id));
+            if (!alreadyExists && !newNotif.isRead) {
+              setUnreadCount(count => count + 1);
+              if (document.visibilityState === "visible") {
+                showToast(newNotif.title || newNotif.body || "새 알림이 도착했습니다.", "info");
+              }
+            }
+            return mergeNotifications([newNotif], prev);
+          });
         }
       };
+
+      eventSource.onmessage = handleNotificationEvent;
+      eventSource.addEventListener("notification", handleNotificationEvent);
+      eventSource.addEventListener("heartbeat", () => {});
 
       eventSource.onerror = (e) => {
         console.error("SSE Error:", e);
@@ -1380,9 +1438,9 @@ export function PilaConProvider({ children }) {
         // 서버 동기화
         if (user) {
           try {
-            // posts 구조가 핵심이므로 settings 필드에 전체 담아서 보냄 (또는 필요한 것만)
+            // 게시물 알림 스위치 상태와 서버 allowMatchingJob 플래그를 맞춘다.
             await axios.patch(`${API_BASE_URL}/notifications/settings`, {
-              allowMatchingJob: true, // 맞춤 알림을 사용하므로 항상 true로 설정하거나 UI에 맞춰 연동
+              allowMatchingJob: !!next?.posts?.on,
               settings: next 
             });
           } catch (e) { console.error('Failed to sync notification settings', e); }
