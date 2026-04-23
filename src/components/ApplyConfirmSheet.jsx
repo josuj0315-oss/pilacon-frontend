@@ -61,7 +61,7 @@ export default function ApplyConfirmSheet({ job, onClose, onApplySuccess }) {
                         </p>
                         <button
                             className="apply-btn"
-                            onClick={() => navigate(`/profile/edit?mode=new&fromJobId=${job.id}&jobType=${requiredType}`)}
+                            onClick={() => navigate(`/profile/instructor/edit?mode=new&fromJobId=${job.id}&jobType=${requiredType}`)}
                         >
                             프로필 만들러 가기
                         </button>

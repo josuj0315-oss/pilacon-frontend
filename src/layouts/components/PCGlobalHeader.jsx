@@ -244,7 +244,7 @@ export default function PCGlobalHeader({
               <button
                 className="pc-header-cta-btn secondary"
                 onClick={() =>
-                  handleProtectedAction("/profile/edit?mode=new", () => navigate("/profile/edit?mode=new"))
+                  handleProtectedAction("/profile/instructor/edit?mode=new", () => navigate("/profile/instructor/edit?mode=new"))
                 }
               >
                 이력서 작성

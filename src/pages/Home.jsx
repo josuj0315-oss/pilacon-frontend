@@ -557,7 +557,7 @@ export default function Home() {
               <button
                 className="fab-menu-item"
                 onClick={async () => {
-                  const nextPath = `/profile/edit?mode=new`;
+                  const nextPath = `/profile/instructor/edit?mode=new`;
                   if (!user) {
                     const ok = await confirm("알림", "로그인 후 이용하세요.");
                     if (ok) {
