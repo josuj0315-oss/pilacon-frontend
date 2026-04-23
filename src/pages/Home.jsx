@@ -312,13 +312,11 @@ export default function Home() {
       {!isDesktop && (
         <section className="filter-section">
           <button
-            className={`filter ${selectedRegions.length > 0 && !selectedRegions.includes("전국") ? "active" : ""}`}
+            className={`filter filter-region ${selectedRegions.length > 0 && !selectedRegions.includes("전국") ? "active" : ""}`}
             onClick={() => setShowRegionSheet(true)}
           >
-            지역·범위
-            <span className="filter-icon-box">
-              <ICONS.location size={12} />
-            </span>
+            <span>지역·범위</span>
+            <ICONS.location size={16} strokeWidth={1.9} />
           </button>
 
                   {category !== "기타" ? (
@@ -401,8 +399,8 @@ export default function Home() {
               className={`pc-region-filter-trigger ${selectedRegions.length > 0 && !selectedRegions.includes("전국") ? "active" : ""}`}
               onClick={() => setShowRegionSheet(true)}
             >
-              <ICONS.filter size={14} />
               <span>지역·범위</span>
+              <ICONS.location size={16} strokeWidth={1.9} />
             </button>
           </div>
 

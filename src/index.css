@@ -721,24 +721,17 @@ body {
   line-height: 1 !important;
 }
 
+.filter-region {
+  gap: 8px !important;
+}
+
+.filter-region svg {
+  flex-shrink: 0;
+}
+
 .filter.active {
   background: #0f172a !important;
   color: #fff !important;
-}
-
-.filter-icon-box {
-  width: 18px;
-  height: 18px;
-  background: #94a3b8;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-left: -2px;
-}
-
-.filter-icon-box svg {
-  color: white !important;
 }
 
 .category-wrap {
@@ -2017,12 +2010,12 @@ body {
     padding: 2px 0;
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
     font-size: 13px;
-    font-weight: 700;
-    color: #64748b;
+    font-weight: 800;
+    color: #475569;
     cursor: pointer;
-    transition: color 0.16s ease;
+    transition: all 0.16s ease;
   }
 
   .pc-region-filter-trigger:hover,
