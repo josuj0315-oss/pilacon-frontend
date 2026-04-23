@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 
 // 응답 인터셉터용 변수들
@@ -268,6 +268,8 @@ function mergeNotifications(primary = [], secondary = []) {
 }
 
 export function PilaConProvider({ children }) {
+  const notificationsRef = useRef([]);
+  const pollingTimerRef = useRef(null);
   const [jobs, setJobs] = useState([]);
   const [profile, setProfile] = useState(null);
   const [profiles, setProfiles] = useState(() => readJSON(LS.instructorProfiles, []));
@@ -485,6 +487,10 @@ export function PilaConProvider({ children }) {
   useEffect(() => {
     writeJSON(LS.notificationSettings, notificationSettings);
   }, [notificationSettings]);
+
+  useEffect(() => {
+    notificationsRef.current = notifications;
+  }, [notifications]);
 
   // ✅ Auth 상태 변화 저장 (로그인 시 데이터 백업용. 초기화 시 빈 유저라고 토큰을 지우면 안됨!)
   useEffect(() => {
@@ -1172,6 +1178,39 @@ export function PilaConProvider({ children }) {
     }
   };
 
+  const syncLatestNotifications = useCallback(async ({ showToastForNew = false } = {}) => {
+    const token = localStorage.getItem("accessToken");
+    if (!user || !token) return { items: [], total: 0 };
+
+    try {
+      const [notificationsRes, unreadRes] = await Promise.all([
+        axios.get(`${API_BASE_URL}/notifications?page=1`),
+        axios.get(`${API_BASE_URL}/notifications/unread-count`),
+      ]);
+
+      const incoming = (notificationsRes.data?.items || []).filter((n) => {
+        const type = (n.resourceType || '').toLowerCase();
+        return type !== 'chat' && type !== 'message';
+      });
+      const prevIds = new Set((notificationsRef.current || []).map((item) => String(item?.id)));
+      const newUnreadItems = incoming.filter((item) => !item?.isRead && !prevIds.has(String(item?.id)));
+
+      setNotifications(prev => mergeNotifications(incoming, prev));
+      setUnreadCount(Number(unreadRes.data) || 0);
+
+      if (showToastForNew && document.visibilityState === "visible") {
+        newUnreadItems.slice(0, 1).forEach((item) => {
+          showToast(item.title || item.body || "새 알림이 도착했습니다.", "info");
+        });
+      }
+
+      return { ...notificationsRes.data, items: incoming };
+    } catch (e) {
+      console.error("Failed to sync latest notifications:", e);
+      return { items: [], total: 0 };
+    }
+  }, [user]);
+
   const markNotificationAsRead = async (id) => {
     try {
       await axios.patch(`${API_BASE_URL}/notifications/${id}/read`, {});
@@ -1196,7 +1235,7 @@ export function PilaConProvider({ children }) {
     }
   };
 
-  const fetchUnreadCount = async () => {
+  const fetchUnreadCount = useCallback(async () => {
     const token = localStorage.getItem("accessToken");
     if (!user || !token) return;
     try {
@@ -1205,7 +1244,7 @@ export function PilaConProvider({ children }) {
     } catch (e) {
       console.error("Failed to fetch unread count:", e);
     }
-  };
+  }, [user]);
 
   // SSE 연결
   useEffect(() => {
@@ -1225,6 +1264,7 @@ export function PilaConProvider({ children }) {
     if (!user || !token) return;
 
     fetchUnreadCount();
+    syncLatestNotifications();
 
     let eventSource;
     const connectSSE = () => {
@@ -1282,11 +1322,30 @@ export function PilaConProvider({ children }) {
     };
 
     connectSSE();
+
+    const runPollingSync = () => {
+      syncLatestNotifications({ showToastForNew: document.visibilityState === "visible" });
+    };
+
+    pollingTimerRef.current = setInterval(runPollingSync, 30000);
+
+    const handleVisibilityOrFocus = () => {
+      if (document.visibilityState === "visible") {
+        runPollingSync();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityOrFocus);
+    window.addEventListener("focus", handleVisibilityOrFocus);
+
     return () => {
       if (eventSource) eventSource.close();
       if (sseTimerRef.current) clearTimeout(sseTimerRef.current);
+      if (pollingTimerRef.current) clearInterval(pollingTimerRef.current);
+      document.removeEventListener("visibilitychange", handleVisibilityOrFocus);
+      window.removeEventListener("focus", handleVisibilityOrFocus);
     };
-  }, [user, mutedChatRooms, leftChatRooms, notificationSettings.message.on]);
+  }, [user, mutedChatRooms, leftChatRooms, notificationSettings.message.on, fetchUnreadCount, syncLatestNotifications]);
 
   const resetLocal = () => {
     try {
