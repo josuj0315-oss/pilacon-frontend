@@ -106,6 +106,7 @@ export default function Write() {
   const [aiInput, setAiInput] = useState("");
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [aiMessage, setAiMessage] = useState("");
+  const [aiElapsedSeconds, setAiElapsedSeconds] = useState(0);
 
   // ✅ 초기 진입 시: 로컬 스토리지에서 임시저장 데이터 복원
   useEffect(() => {
@@ -191,6 +192,20 @@ export default function Write() {
       setNewPost((prev) => ({ ...prev, category: globalCategory }));
     }
   }, [globalCategory, queryCategory]);
+
+  useEffect(() => {
+    if (!isAiLoading) {
+      setAiElapsedSeconds(0);
+      return;
+    }
+
+    const startedAt = Date.now();
+    const timer = window.setInterval(() => {
+      setAiElapsedSeconds(Math.floor((Date.now() - startedAt) / 1000));
+    }, 1000);
+
+    return () => window.clearInterval(timer);
+  }, [isAiLoading]);
 
   // ✅ 임시저장 기능
   const handleSaveDraft = () => {
@@ -494,6 +509,20 @@ export default function Write() {
     });
   };
 
+  const aiLoadingGuide = useMemo(() => {
+    if (aiElapsedSeconds < 4) return "입력한 내용을 읽고 핵심 정보를 정리하고 있어요.";
+    if (aiElapsedSeconds < 9) return "근무 형태, 급여, 지역 같은 항목을 추출하는 중입니다.";
+    if (aiElapsedSeconds < 15) return "조금 더 걸리고 있어요. 작성 가능한 형태로 정리 중입니다.";
+    return "문장이 길거나 정보가 많으면 시간이 조금 더 걸릴 수 있어요.";
+  }, [aiElapsedSeconds]);
+
+  const aiElapsedLabel = useMemo(() => {
+    const minutes = Math.floor(aiElapsedSeconds / 60);
+    const seconds = aiElapsedSeconds % 60;
+    if (minutes === 0) return `${seconds}초째 분석 중`;
+    return `${minutes}분 ${seconds}초째 분석 중`;
+  }, [aiElapsedSeconds]);
+
   return (
     <div className="write-container">
       {/* 고정 헤더 */}
@@ -551,6 +580,22 @@ export default function Write() {
                   </>
                 )}
               </button>
+
+              {isAiLoading && (
+                <div className="ai-loading-panel" aria-live="polite" aria-busy="true">
+                  <div className="ai-loading-top">
+                    <div className="ai-loading-title-row">
+                      <span className="ai-loading-spinner" aria-hidden="true" />
+                      <strong>AI가 공고를 분석하고 있어요</strong>
+                    </div>
+                    <span className="ai-loading-time">{aiElapsedLabel}</span>
+                  </div>
+                  <p className="ai-loading-guide">{aiLoadingGuide}</p>
+                  <div className="ai-loading-progress" aria-hidden="true">
+                    <span className="ai-loading-progress-bar" />
+                  </div>
+                </div>
+              )}
 
               {aiMessage && (
                 <div className={`ai-message ${aiMessage.includes('실패') ? 'error' : 'success'}`}>
