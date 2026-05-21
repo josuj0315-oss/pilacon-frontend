@@ -1,6 +1,5 @@
 import axios from 'axios';
-
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+import { API_BASE_URL } from '../config/api';
 
 export async function fetchJobs() {
     const response = await axios.get(`${API_BASE_URL}/jobs`);

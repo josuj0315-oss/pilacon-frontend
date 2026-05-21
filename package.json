@@ -4,10 +4,13 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
+    "dev": "NODE_ENV=development APP_ENV=local vite",
+    "dev:staging": "NODE_ENV=development APP_ENV=dev vite --mode development",
+    "dev:remote": "NODE_ENV=development APP_ENV=dev vite --mode development",
+    "build": "NODE_ENV=production APP_ENV=prod vite build --mode production",
+    "build:dev": "NODE_ENV=production APP_ENV=dev vite build --mode development",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "NODE_ENV=production APP_ENV=prod vite preview --mode production"
   },
   "dependencies": {
     "@sentry/react": "^10.45.0",

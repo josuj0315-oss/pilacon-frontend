@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { ICONS } from '../constants/icons';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+import { API_BASE_URL } from '../config/api';
 
 const PopupContainer = () => {
   const [activePopups, setActivePopups] = useState([]);
@@ -13,13 +12,16 @@ const PopupContainer = () => {
     const fetchPopups = async () => {
       try {
         const res = await axios.get(`${API_BASE_URL}/popups/active`);
-        const allActive = res.data;
+        const allActive = Array.isArray(res.data) ? res.data : [];
 
         // localStorage에서 숨김 처리된 팝업 필터링
         const hiddenPopups = JSON.parse(localStorage.getItem('hiddenPopups') || '{}');
         const now = new Date().getTime();
 
-        const filtered = allActive.filter(popup => {
+        const filtered = allActive.filter((popup) => {
+          if (!popup || typeof popup !== 'object') {
+            return false;
+          }
           const hideUntil = hiddenPopups[popup.id];
           if (hideUntil && now < hideUntil) {
             return false;

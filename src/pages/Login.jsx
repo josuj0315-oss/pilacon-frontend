@@ -3,6 +3,8 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { usePilaCon } from '../store/pilaconStore';
 import FitJobLogo from '../components/FitJobLogo';
 import { IS_EMAIL_LOGIN_ENABLED, getOnboardingPath } from '../constants/auth';
+import { API_BASE_URL } from '../config/api';
+import { LOGIN_NEXT_STORAGE_KEY, getPostLoginPath, normalizeAuthNextPath } from '../utils/authRedirect';
 import './Login.css';
 
 
@@ -19,6 +21,17 @@ export default function Login() {
         nickname: ''
     });
     const [error, setError] = useState('');
+
+    const getRequestedNextPath = () => {
+        return normalizeAuthNextPath(searchParams.get('next')) ||
+            normalizeAuthNextPath(sessionStorage.getItem(LOGIN_NEXT_STORAGE_KEY));
+    };
+
+    const navigateAfterLogin = (user, options = {}) => {
+        const nextPath = getRequestedNextPath();
+        sessionStorage.removeItem(LOGIN_NEXT_STORAGE_KEY);
+        navigate(getPostLoginPath(user, nextPath, getOnboardingPath), options);
+    };
 
     // 일반 로그인 비활성화 시 모드 강제 고정
     useEffect(() => {
@@ -66,9 +79,9 @@ export default function Login() {
                     console.log("User ID:", user?.id);
                     console.log("Nickname:", user?.nickname);
                     console.log("Role:", user?.role);
-                    console.log("Next Path:", getOnboardingPath(user));
+                    console.log("Next Path:", getPostLoginPath(user, getRequestedNextPath(), getOnboardingPath));
                     console.log("----------------------------");
-                    navigate(getOnboardingPath(user), { replace: true });
+                    navigateAfterLogin(user, { replace: true });
                 } else {
                     if (isDev) console.error("4-b. Login failed during user data fetch!");
                 }
@@ -84,8 +97,14 @@ export default function Login() {
         localStorage.removeItem('token');
         localStorage.removeItem('authToken');
 
-        const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
-        window.location.href = `${API_BASE}/auth/${provider}`;
+        const nextPath = normalizeAuthNextPath(searchParams.get('next'));
+        if (nextPath) {
+            sessionStorage.setItem(LOGIN_NEXT_STORAGE_KEY, nextPath);
+        } else {
+            sessionStorage.removeItem(LOGIN_NEXT_STORAGE_KEY);
+        }
+
+        window.location.href = `${API_BASE_URL}/auth/${provider}`;
     };
 
     const handleLocalSubmit = async (e) => {
@@ -103,9 +122,9 @@ export default function Login() {
                 console.log("User ID:", user?.id);
                 console.log("Nickname:", user?.nickname);
                 console.log("Role:", user?.role);
-                console.log("Next Path:", getOnboardingPath(user));
+                console.log("Next Path:", getPostLoginPath(user, getRequestedNextPath(), getOnboardingPath));
                 console.log("----------------------------------");
-                navigate(getOnboardingPath(user));
+                navigateAfterLogin(user);
             } else {
                 setError(res.error);
             }
@@ -117,9 +136,9 @@ export default function Login() {
                 console.log("User ID:", user?.id);
                 console.log("Nickname:", user?.nickname);
                 console.log("Role:", user?.role);
-                console.log("Next Path:", getOnboardingPath(user));
+                console.log("Next Path:", getPostLoginPath(user, getRequestedNextPath(), getOnboardingPath));
                 console.log("-----------------------------------");
-                navigate(getOnboardingPath(user));
+                navigateAfterLogin(user);
             } else {
                 setError(res.error);
             }

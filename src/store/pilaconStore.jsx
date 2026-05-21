@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
+import { API_BASE_URL } from "../config/api";
 
 // 응답 인터셉터용 변수들
 let isRefreshing = false;
@@ -39,7 +40,7 @@ axios.interceptors.request.use((config) => {
   return config;
 });
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+const asArray = (value) => (Array.isArray(value) ? value : []);
 
 axios.interceptors.response.use(
   (response) => response,
@@ -406,19 +407,19 @@ export function PilaConProvider({ children }) {
     try {
       // fetch applications
       const appRes = await axios.get(`${API_BASE_URL}/applications/my`);
-      setApplications(appRes.data);
+      setApplications(asArray(appRes.data));
     } catch (e) { console.warn('Failed to fetch applications:', e); }
 
     try {
       // fetch profiles
       const profRes = await axios.get(`${API_BASE_URL}/instructor-profiles`);
-      setProfiles(profRes.data);
+      setProfiles(asArray(profRes.data));
     } catch (e) { console.warn('Failed to fetch instructor profiles:', e); }
 
     try {
       // fetch favorites
       const favRes = await axios.get(`${API_BASE_URL}/favorites/me`);
-      setFavorites(favRes.data);
+      setFavorites(asArray(favRes.data));
     } catch (e) { console.warn('Failed to fetch favorites:', e); }
     finally {
       isFetchingAuth = false;
@@ -1108,7 +1109,7 @@ export function PilaConProvider({ children }) {
     if (!user) return;
     try {
       const appRes = await axios.get(`${API_BASE_URL}/applications/my`);
-      setApplications(appRes.data);
+      setApplications(asArray(appRes.data));
     } catch (e) {
       console.warn('Failed to refresh applications:', e);
     }
@@ -1128,7 +1129,7 @@ export function PilaConProvider({ children }) {
     try {
       const response = await axios.get(`${API_BASE_URL}/chat/rooms`);
       const leftRoomSet = new Set((leftChatRooms || []).map((roomId) => String(roomId)));
-      return (response.data || []).filter((room) => !leftRoomSet.has(String(room.id)));
+      return asArray(response.data).filter((room) => room && !leftRoomSet.has(String(room.id)));
     } catch (error) {
       console.error('Failed to fetch chat rooms:', error);
       return [];
@@ -1138,7 +1139,7 @@ export function PilaConProvider({ children }) {
   const getChatMessages = async (roomId) => {
     try {
       const response = await axios.get(`${API_BASE_URL}/chat/rooms/${roomId}/messages`);
-      return response.data;
+      return asArray(response.data);
     } catch (error) {
       console.error('Failed to fetch chat messages:', error);
       return [];

@@ -1,6 +1,7 @@
-import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { usePilaCon } from "./store/pilaconStore";
 import { IS_EMAIL_LOGIN_ENABLED, getOnboardingPath } from "./constants/auth";
+import { getPostLoginPath } from "./utils/authRedirect";
 import AppLayout from "./layouts/AppLayout";
 import PCLayout from "./layouts/PCLayout";
 
@@ -70,6 +71,27 @@ function ScrollToTop() {
   return null;
 }
 
+function RequireAuth({ children }) {
+  const { user } = usePilaCon();
+  const location = useLocation();
+
+  if (user) return children;
+
+  const nextPath = `${location.pathname}${location.search}${location.hash}`;
+  return <Navigate to={`/login?next=${encodeURIComponent(nextPath)}`} replace />;
+}
+
+function LoginRoute() {
+  const { user } = usePilaCon();
+  const location = useLocation();
+
+  if (!user) return <Login />;
+
+  const params = new URLSearchParams(location.search);
+  const redirectPath = getPostLoginPath(user, params.get("next"), getOnboardingPath);
+  return <Navigate to={redirectPath} replace />;
+}
+
 export default function App() {
   const { user, isAuthLoading } = usePilaCon();
   const { isDesktop } = useDevice();
@@ -92,7 +114,7 @@ export default function App() {
           <Route path="/" element={<Home />} />
           <Route path="/activity" element={<Activity />} />
           <Route path="/chat" element={<Chat />} />
-          <Route path="/jobs/:id" element={<JobPostDetail />} />
+          <Route path="/jobs/:id" element={<RequireAuth><JobPostDetail /></RequireAuth>} />
           <Route path="/mypage" element={<MyPage />} />
           <Route path="/profile" element={<ProfileDetail />} />
           <Route path="/mypage/favorites" element={<Favorites />} />
@@ -107,7 +129,7 @@ export default function App() {
 
         {/* ✅ 하단 탭 없이 단독 화면으로 쓰고 싶은 페이지 */}
         <Route path="/write" element={<Write />} />
-        <Route path="/login" element={user ? <Navigate to={getOnboardingPath(user)} /> : <Login />} />
+        <Route path="/login" element={<LoginRoute />} />
         <Route path="/signup" element={user ? <Navigate to={getOnboardingPath(user)} /> : (IS_EMAIL_LOGIN_ENABLED ? <SignupWizard /> : <Navigate to="/login" />)} />
         <Route path="/set-nickname" element={<SetNickname />} />
         <Route path="/select-role" element={<SelectRole />} />
@@ -139,4 +161,3 @@ export default function App() {
     </div>
   );
 }
-

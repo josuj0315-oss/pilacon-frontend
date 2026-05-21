@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { ICONS } from '../constants/icons';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+import { API_BASE_URL } from '../config/api';
 
 export default function Partnership() {
   const [formData, setFormData] = useState({

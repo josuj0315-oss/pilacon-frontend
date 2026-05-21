@@ -44,6 +44,17 @@ export default function Home() {
   const effectiveSearchQuery = isDesktop ? desktopSearchQuery : searchQuery;
   const PAGE_SIZE = 12;
 
+  const handleJobClick = async (jobId) => {
+    const nextPath = `/jobs/${jobId}`;
+    if (!user) {
+      const ok = await confirm("알림", "로그인 후 이용하세요.");
+      if (!ok) return;
+      navigate(`/login?next=${encodeURIComponent(nextPath)}`);
+      return;
+    }
+    navigate(nextPath);
+  };
+
   useEffect(() => {
     if (!isDesktop) return;
 
@@ -440,7 +451,7 @@ export default function Home() {
                 <div key={job.id} className="job-card-wrapper">
                   <JobCard
                     job={job}
-                    onClick={() => navigate(`/jobs/${job.id}`)}
+                    onClick={() => handleJobClick(job.id)}
                     showFavorite={true}
                     isFavorited={isFavorited(job.id)}
                     onToggleFavorite={toggleFavorite}
@@ -510,7 +521,7 @@ export default function Home() {
               <div className="job-card-wrapper">
                 <JobCard
                   job={job}
-                  onClick={() => navigate(`/jobs/${job.id}`)}
+                  onClick={() => handleJobClick(job.id)}
                   showFavorite={true}
                   isFavorited={isFavorited(job.id)}
                   onToggleFavorite={toggleFavorite}

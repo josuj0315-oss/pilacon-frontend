@@ -7,6 +7,7 @@ import { useCategory } from "../context/CategoryContext";
 import { ICONS } from "../constants/icons";
 import axios from "axios";
 import useDevice from "../hooks/useDevice";
+import { API_BASE_URL } from "../config/api";
 
 const WORK_TYPES = [
     { id: "sub", label: "대타/급구" },
@@ -32,8 +33,6 @@ const SAVED_CENTERS = [
         equipment: "리포머, 바렐, 체어, 캐딜락",
     }
 ];
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 
 export default function JobEdit() {
     const { isDesktop } = useDevice();
