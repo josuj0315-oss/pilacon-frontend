@@ -77,10 +77,6 @@ export default function RegionFilterSheet({
   };
 
   const handleApply = () => {
-    if (tempRegions.length === 0) {
-      showToast("지역을 선택해주세요.");
-      return;
-    }
     onApply(tempRegions);
     onClose();
   };
