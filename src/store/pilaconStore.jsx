@@ -1144,7 +1144,10 @@ export function PilaConProvider({ children }) {
 
   const getChatMessages = async (roomId) => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/chat/rooms/${roomId}/messages`);
+      const [response] = await Promise.all([
+        axios.get(`${API_BASE_URL}/chat/rooms/${roomId}/messages`),
+        axios.post(`${API_BASE_URL}/chat/rooms/${roomId}/read`).catch(() => {}),
+      ]);
       return asArray(response.data);
     } catch (error) {
       console.error('Failed to fetch chat messages:', error);

@@ -490,7 +490,12 @@ export default function ChatConversationPanel({ roomId, embedded = false, isDesk
                   <div className="bubble-content">
                     {!isMe && <div className="bubble-sender-name">{senderName}</div>}
                     <div className="bubble-wrapper">
-                      {isMe && <div className="bubble-time">{formatTime(message.createdAt)}</div>}
+                      {isMe && (
+                        <div className="bubble-meta">
+                          {message.isRead && <span className="bubble-read">읽음</span>}
+                          <div className="bubble-time">{formatTime(message.createdAt)}</div>
+                        </div>
+                      )}
                       <div className={`bubble ${isMe ? "bubble-me" : "bubble-other"} ${message.type === "image" ? "bubble-image-type" : ""}`}>
                         {message.type === "image" ? (
                           <div
@@ -960,6 +965,19 @@ export default function ChatConversationPanel({ roomId, embedded = false, isDesk
           line-height: 1.5;
           font-weight: 500;
           word-break: break-all;
+        }
+        .bubble-meta {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-end;
+          gap: 2px;
+          margin-bottom: 2px;
+        }
+        .bubble-read {
+          font-size: 10px;
+          color: #5b5ff5;
+          font-weight: 700;
+          white-space: nowrap;
         }
         .bubble-time {
           font-size: 10px;
