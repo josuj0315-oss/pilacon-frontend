@@ -774,13 +774,25 @@ export function PilaConProvider({ children }) {
     try {
       await axios.post(`${API_BASE_URL}/auth/logout`);
     } catch (e) { console.warn('Logout hook failed', e); }
-    
-    // 완전 삭제
+
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('token');
     localStorage.removeItem('authToken');
-    localStorage.removeItem(LS.auth); 
+    localStorage.removeItem(LS.auth);
+    localStorage.removeItem('auth');
+    setUser(null);
+    setProfiles([]);
+    setFavorites([]);
+  };
+
+  const deleteAccount = async () => {
+    await axios.delete(`${API_BASE_URL}/auth/me`);
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('token');
+    localStorage.removeItem('authToken');
+    localStorage.removeItem(LS.auth);
     localStorage.removeItem('auth');
     setUser(null);
     setProfiles([]);
@@ -1492,6 +1504,7 @@ export function PilaConProvider({ children }) {
       getAdminInquiry,
       loginWithToken,
       logout,
+      deleteAccount,
       resetLocal,
       loading,
       isAuthLoading,

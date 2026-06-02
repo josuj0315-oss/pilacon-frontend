@@ -7,7 +7,7 @@ import useDevice from '../hooks/useDevice';
 export default function AppSettings() {
     const navigate = useNavigate();
     const { isDesktop } = useDevice();
-    const { logout } = usePilaCon();
+    const { logout, deleteAccount, confirm } = usePilaCon();
 
     const settingGroups = [
         {
@@ -82,7 +82,20 @@ export default function AppSettings() {
                 </div>
                 
                 <div className="withdraw-info">
-                    <button className="withdraw-btn" onClick={() => navigate('#')}>회원탈퇴</button>
+                    <button className="withdraw-btn" onClick={async () => {
+                        const ok = await confirm(
+                            '회원 탈퇴',
+                            '탈퇴하면 모든 개인정보가 삭제되며 복구할 수 없습니다.\n정말 탈퇴하시겠습니까?',
+                            { confirmText: '탈퇴하기', cancelText: '취소' }
+                        );
+                        if (!ok) return;
+                        try {
+                            await deleteAccount();
+                            navigate('/login');
+                        } catch (e) {
+                            alert('탈퇴 처리 중 오류가 발생했습니다.');
+                        }
+                    }}>회원탈퇴</button>
                 </div>
                 </section>
             </main>
