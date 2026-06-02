@@ -471,57 +471,59 @@ export default function ChatConversationPanel({ roomId, embedded = false, isDesk
               </div>
             )}
 
-            {messages.map((message) => {
-              const isMe = message.senderUserId === user?.id;
-              const senderName = isMe ? (user?.nickname || "나") : (roomInfo?.otherUser?.nickname || roomInfo?.otherUser?.name || "상대방");
+            {(() => {
+              const myReadMessages = messages.filter(m => m.senderUserId === user?.id && m.isRead);
+              const lastReadId = myReadMessages.length > 0 ? myReadMessages[myReadMessages.length - 1].id : null;
 
-              return (
-                <div
-                  key={message.id}
-                  ref={(el) => { messageRefs.current[message.id] = el; }}
-                  className={`bubble-row ${isMe ? "is-me" : "is-other"}`}
-                >
-                  {!isMe && (
-                    <div
-                      className="bubble-avatar"
-                      onClick={() => handleProfileClick(roomInfo?.otherUser)}
-                      style={{ cursor: roomInfo?.otherUser?.profileImage ? "pointer" : "default" }}
-                    >
-                      {roomInfo?.otherUser?.profileImage ? (
-                        <img src={roomInfo.otherUser.profileImage} alt="avatar" className="bubble-avatar-img" />
-                      ) : (
-                        <div className="avatar-placeholder">{(roomInfo?.otherUser?.nickname || roomInfo?.otherUser?.name || "C").slice(0, 1)}</div>
-                      )}
-                    </div>
-                  )}
+              return messages.map((message) => {
+                const isMe = message.senderUserId === user?.id;
+                const senderName = isMe ? (user?.nickname || "나") : (roomInfo?.otherUser?.nickname || roomInfo?.otherUser?.name || "상대방");
+                const showRead = isMe && message.id === lastReadId;
 
-                  <div className="bubble-content">
-                    {!isMe && <div className="bubble-sender-name">{senderName}</div>}
-                    <div className="bubble-wrapper">
-                      {isMe && (
-                        <div className="bubble-meta">
-                          {message.isRead && <span className="bubble-read">읽음</span>}
-                          <div className="bubble-time">{formatTime(message.createdAt)}</div>
-                        </div>
-                      )}
-                      <div className={`bubble ${isMe ? "bubble-me" : "bubble-other"} ${message.type === "image" ? "bubble-image-type" : ""}`}>
-                        {message.type === "image" ? (
-                          <div
-                            className="bubble-image-container"
-                            onClick={() => setPreviewData({ url: message.imageUrl, name: senderName, type: "image" })}
-                          >
-                            <img src={message.imageUrl} alt="첨부 이미지" className="bubble-image" />
-                          </div>
+                return (
+                  <div
+                    key={message.id}
+                    ref={(el) => { messageRefs.current[message.id] = el; }}
+                    className={`bubble-row ${isMe ? "is-me" : "is-other"}`}
+                  >
+                    {!isMe && (
+                      <div
+                        className="bubble-avatar"
+                        onClick={() => handleProfileClick(roomInfo?.otherUser)}
+                        style={{ cursor: roomInfo?.otherUser?.profileImage ? "pointer" : "default" }}
+                      >
+                        {roomInfo?.otherUser?.profileImage ? (
+                          <img src={roomInfo.otherUser.profileImage} alt="avatar" className="bubble-avatar-img" />
                         ) : (
-                          <div className="bubble-text">{message.content}</div>
+                          <div className="avatar-placeholder">{(roomInfo?.otherUser?.nickname || roomInfo?.otherUser?.name || "C").slice(0, 1)}</div>
                         )}
                       </div>
-                      {!isMe && <div className="bubble-time">{formatTime(message.createdAt)}</div>}
+                    )}
+
+                    <div className="bubble-content">
+                      {!isMe && <div className="bubble-sender-name">{senderName}</div>}
+                      <div className="bubble-wrapper">
+                        {isMe && <div className="bubble-time">{formatTime(message.createdAt)}</div>}
+                        <div className={`bubble ${isMe ? "bubble-me" : "bubble-other"} ${message.type === "image" ? "bubble-image-type" : ""}`}>
+                          {message.type === "image" ? (
+                            <div
+                              className="bubble-image-container"
+                              onClick={() => setPreviewData({ url: message.imageUrl, name: senderName, type: "image" })}
+                            >
+                              <img src={message.imageUrl} alt="첨부 이미지" className="bubble-image" />
+                            </div>
+                          ) : (
+                            <div className="bubble-text">{message.content}</div>
+                          )}
+                        </div>
+                        {!isMe && <div className="bubble-time">{formatTime(message.createdAt)}</div>}
+                      </div>
+                      {showRead && <div className="bubble-read-receipt">읽음</div>}
                     </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              });
+            })()}
           </div>
         </main>
 
@@ -974,18 +976,12 @@ export default function ChatConversationPanel({ roomId, embedded = false, isDesk
           font-weight: 500;
           word-break: break-all;
         }
-        .bubble-meta {
-          display: flex;
-          flex-direction: column;
-          align-items: flex-end;
-          gap: 2px;
-          margin-bottom: 2px;
-        }
-        .bubble-read {
+        .bubble-read-receipt {
           font-size: 10px;
-          color: #5b5ff5;
-          font-weight: 700;
-          white-space: nowrap;
+          color: #94a3b8;
+          font-weight: 600;
+          text-align: right;
+          margin-top: 2px;
         }
         .bubble-time {
           font-size: 10px;
