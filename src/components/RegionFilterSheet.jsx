@@ -225,6 +225,9 @@ export default function RegionFilterSheet({
           align-items: center;
           gap: 8px;
           overflow-x: auto;
+          overflow-y: hidden;
+          flex-shrink: 0;
+          min-height: 40px;
           margin-bottom: 20px;
           padding-bottom: 4px;
           -ms-overflow-style: none;
