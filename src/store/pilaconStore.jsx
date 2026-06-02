@@ -421,6 +421,12 @@ export function PilaConProvider({ children }) {
       const favRes = await axios.get(`${API_BASE_URL}/favorites/me`);
       setFavorites(asArray(favRes.data));
     } catch (e) { console.warn('Failed to fetch favorites:', e); }
+
+    try {
+      // fetch blocked users from server
+      const blockRes = await axios.get(`${API_BASE_URL}/users/block`);
+      setBlockedUsers(asArray(blockRes.data));
+    } catch (e) { console.warn('Failed to fetch blocked users:', e); }
     finally {
       isFetchingAuth = false;
     }
@@ -1378,28 +1384,35 @@ export function PilaConProvider({ children }) {
 
   const isUserBlocked = (userId) => blockedUsers.some((entry) => String(entry.userId) === String(userId));
 
-  const blockUser = (userInfo) => {
-    setBlockedUsers(prev => {
-      const nextUserId = String(userInfo?.userId ?? userInfo?.id ?? "");
-      if (!nextUserId || prev.some((entry) => String(entry.userId) === nextUserId)) return prev;
-      const updated = [
-        ...prev,
-        {
-          userId: nextUserId,
-          nickname: userInfo?.nickname || userInfo?.name || "차단한 사용자",
-          profileImage: userInfo?.profileImage || "",
-          blockedAt: new Date().toISOString(),
-        },
-      ];
-      return updated;
-    });
+  const blockUser = async (userInfo) => {
+    const targetId = userInfo?.userId ?? userInfo?.id;
+    if (!targetId) return;
+    try {
+      await axios.post(`${API_BASE_URL}/users/block/${targetId}`);
+      setBlockedUsers(prev => {
+        if (prev.some((entry) => String(entry.userId) === String(targetId))) return prev;
+        return [
+          ...prev,
+          {
+            userId: String(targetId),
+            nickname: userInfo?.nickname || userInfo?.name || "차단한 사용자",
+            profileImage: userInfo?.profileImage || "",
+            blockedAt: new Date().toISOString(),
+          },
+        ];
+      });
+    } catch (e) {
+      console.error('차단 실패:', e);
+    }
   };
 
-  const unblockUser = (userId) => {
-    setBlockedUsers(prev => {
-      const updated = prev.filter(entry => String(entry.userId) !== String(userId));
-      return updated;
-    });
+  const unblockUser = async (userId) => {
+    try {
+      await axios.delete(`${API_BASE_URL}/users/block/${userId}`);
+      setBlockedUsers(prev => prev.filter(entry => String(entry.userId) !== String(userId)));
+    } catch (e) {
+      console.error('차단 해제 실패:', e);
+    }
   };
 
   const isChatRoomMuted = (roomId) => mutedChatRooms.some((id) => String(id) === String(roomId));
