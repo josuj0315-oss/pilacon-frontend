@@ -15,6 +15,7 @@ export default function ChatConversationPanel({ roomId, embedded = false, isDesk
     confirm,
     showToast,
     blockUser,
+    unblockUser,
     isUserBlocked,
     isChatRoomMuted,
     toggleChatRoomMute,
@@ -277,14 +278,21 @@ export default function ChatConversationPanel({ roomId, embedded = false, isDesk
 
   const handleBlock = async () => {
     closeAllLayers();
-    const ok = await confirm("차단하기", "이 사용자를 차단하시겠습니까?");
-    if (!ok || !roomInfo?.otherUser) return;
-    blockUser({
-      userId: roomInfo.otherUser.id,
-      nickname: roomInfo.otherUser.nickname || roomInfo.otherUser.name,
-      profileImage: roomInfo.otherUser.profileImage,
-    });
-    showToast("사용자를 차단했습니다.", "success");
+    if (isBlockedRoom) {
+      const ok = await confirm("차단 취소", "이 사용자의 차단을 해제하시겠습니까?");
+      if (!ok || !roomInfo?.otherUser) return;
+      await unblockUser(roomInfo.otherUser.id);
+      showToast("차단을 해제했습니다.", "success");
+    } else {
+      const ok = await confirm("차단하기", "이 사용자를 차단하시겠습니까?");
+      if (!ok || !roomInfo?.otherUser) return;
+      await blockUser({
+        userId: roomInfo.otherUser.id,
+        nickname: roomInfo.otherUser.nickname || roomInfo.otherUser.name,
+        profileImage: roomInfo.otherUser.profileImage,
+      });
+      showToast("사용자를 차단했습니다.", "success");
+    }
   };
 
   const handleMuteToggle = () => {
@@ -609,7 +617,7 @@ export default function ChatConversationPanel({ roomId, embedded = false, isDesk
           <div className="chatroom-bottom-sheet" role="dialog" aria-modal="true" aria-label="채팅방 메뉴">
             <div className="sheet-handle"></div>
             <div className="sheet-content list-menu">
-              <button className="menu-item" type="button" onClick={handleBlock}>차단하기</button>
+              <button className="menu-item" type="button" onClick={handleBlock}>{isBlockedRoom ? "차단 취소" : "차단하기"}</button>
               <button className="menu-item" type="button" onClick={() => { setShowMoreMenu(false); setShowReportModal(true); }}>신고하기</button>
               <button className="menu-item" type="button" onClick={handleMuteToggle}>{isMutedRoom ? "알림 켜기" : "알림 끄기"}</button>
               <button className="menu-item text-danger" type="button" onClick={handleLeaveRoom}>채팅방 나가기</button>
