@@ -32,6 +32,7 @@ export default function JobPostDetail() {
   const { jobs, user, deleteJob, loading: storeLoading, isFavorited, toggleFavorite, applications, refreshApplications, showToast, confirm } = usePilaCon();
 
   const [job, setJob] = useState(null);
+  const [isHidden, setIsHidden] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showApplySheet, setShowApplySheet] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
@@ -58,9 +59,13 @@ export default function JobPostDetail() {
           setJob(found || null);
         }
       } catch (err) {
-        console.error("Failed to fetch job detail:", err);
-        const found = jobs?.find(j => String(j.id) === String(id));
-        setJob(found || null);
+        if (err?.response?.status === 403) {
+          setIsHidden(true);
+        } else {
+          console.error("Failed to fetch job detail:", err);
+          const found = jobs?.find(j => String(j.id) === String(id));
+          setJob(found || null);
+        }
       } finally {
         setLoading(false);
       }
@@ -87,6 +92,24 @@ export default function JobPostDetail() {
           <div className="w-8 h-8 border-4 border-[#5b5ff5] border-t-transparent rounded-full animate-spin"></div>
           <p className="text-gray-500 font-medium">공고를 불러오는 중...</p>
         </div>
+      </div>
+    );
+  }
+
+  if (isHidden) {
+    return (
+      <div className={`flex flex-col items-center justify-center bg-white px-6 text-center ${isDesktop ? "min-h-[60vh] rounded-[28px] border border-gray-100" : "min-h-screen"}`}>
+        <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mb-6">
+          <Flag size={32} color="#ef4444" />
+        </div>
+        <h2 className="text-xl font-bold text-gray-900 mb-2">신고된 게시물입니다</h2>
+        <p className="text-gray-500 mb-8">검토 중인 게시물로 현재 열람할 수 없습니다.</p>
+        <button
+          onClick={() => navigate(-1)}
+          className="px-6 py-3 bg-gray-100 text-gray-700 rounded-full font-medium hover:bg-gray-200 transition-colors"
+        >
+          뒤로가기
+        </button>
       </div>
     );
   }

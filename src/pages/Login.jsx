@@ -40,6 +40,14 @@ export default function Login() {
         }
     }, [mode]);
 
+    // URL에서 authError 파라미터 확인
+    useEffect(() => {
+        const authError = searchParams.get('authError');
+        if (authError) {
+            setError(decodeURIComponent(authError));
+        }
+    }, [searchParams]);
+
     // URL에서 토큰 확인 및 처리
     useEffect(() => {
         const token = searchParams.get('accessToken');
@@ -151,6 +159,7 @@ export default function Login() {
 
     const renderChoice = () => (
         <div className="button-group">
+            {error && <p className="error-message">{error}</p>}
             <button
                 className="login-btn kakao"
                 onClick={() => handleSocialLogin('kakao')}
