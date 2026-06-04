@@ -45,6 +45,7 @@ export default function JobEdit() {
     const endDateRef = React.useRef(null);
     const todayStr = new Date().toISOString().split('T')[0];
     const [errors, setErrors] = useState({});
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const { setCategory: setGlobalCategory } = useCategory();
 
     const [loading, setLoading] = useState(true);
@@ -164,27 +165,30 @@ export default function JobEdit() {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
+        if (isSubmitting) return;
+
         const newErrors = {};
         if (!newPost.title.trim()) newErrors.title = "공고 제목을 입력해주세요.";
-        
+
         const payNumber = Number(String(newPost.pay ?? "").replace(/\D/g, ""));
         if (!payNumber) newErrors.pay = "급여를 입력해주세요.";
-        
+
         if (!newPost.workDate) newErrors.workDate = "날짜를 선택해주세요.";
         if (!newPost.isToday && !newPost.workEndDate) newErrors.workEndDate = "기본 종료 날짜를 선택해주세요.";
 
         if (Object.keys(newErrors).length > 0) {
             setErrors(newErrors);
             showToast("입력되지 않은 필수 항목이 있습니다.", "error");
-            
+
             if (newErrors.title) titleRef.current?.focus();
             else if (newErrors.pay) payRef.current?.focus();
             else if (newErrors.workDate) startDateRef.current?.focus();
             else if (newErrors.workEndDate) endDateRef.current?.focus();
             return;
         }
-        
+
         setErrors({});
+        setIsSubmitting(true);
 
         const payload = {
             title: newPost.title,
@@ -207,17 +211,22 @@ export default function JobEdit() {
             time: `${TIME_OPTIONS.find(o => o.id === newPost.workTime)?.label || "오전"}${newPost.workTimeNote ? ` (${newPost.workTimeNote})` : ""}`,
         };
 
-        const result = await updateJob(id, payload);
+        try {
+            const result = await updateJob(id, payload);
 
-        if (result.ok) {
-            showToast("공고가 수정되었습니다!", "success");
-            navigate(`/jobs/${id}`);
-        } else {
-            showToast("공고 수정에 실패했습니다. " + (result.error?.response?.data?.message || ""), "error");
+            if (result.ok) {
+                showToast("공고가 수정되었습니다!", "success");
+                navigate(`/jobs/${id}`);
+            } else {
+                showToast("공고 수정에 실패했습니다. " + (result.error?.response?.data?.message || ""), "error");
+            }
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
     const isSubmitDisabled =
+        isSubmitting ||
         !newPost.category ||
         !newPost.title.trim() ||
         !newPost.studio.trim() ||
@@ -585,7 +594,7 @@ export default function JobEdit() {
                     onClick={handleSubmit}
                     disabled={isSubmitDisabled}
                 >
-                    수정 완료하기
+                    {isSubmitting ? "수정 중..." : "수정 완료하기"}
                 </button>
             </div>
         </div>

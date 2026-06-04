@@ -57,6 +57,7 @@ export default function Write() {
   const regionRef = React.useRef(null);
   
   const [errors, setErrors] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [showAddressSheet, setShowAddressSheet] = useState(false);
   const today = new Date();
   const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
@@ -263,6 +264,8 @@ export default function Write() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (isSubmitting) return;
+
     const newErrors = {};
     if (!newPost.title.trim()) newErrors.title = "공고 제목을 입력해주세요.";
     if (!newPost.pay) newErrors.pay = "급여를 입력해주세요.";
@@ -273,7 +276,7 @@ export default function Write() {
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       showToast("입력되지 않은 필수 항목이 있습니다.", "error");
-      
+
       // Focus first error
       if (newErrors.title) titleRef.current?.focus();
       else if (newErrors.pay) payRef.current?.focus();
@@ -282,65 +285,72 @@ export default function Write() {
       return;
     }
 
+    setIsSubmitting(true);
+
     const payNumber = Number(String(newPost.pay ?? "").replace(/\D/g, ""));
 
     const finalCategory = CATEGORY_OPTIONS.includes(newPost.category)
       ? newPost.category
       : globalCategory;
 
-    const result = await createJob({
-      title: newPost.title,
-      description: newPost.description,
-      category: finalCategory,
-      subCategory: finalCategory === "기타" ? newPost.subCategory : "",
-      type: newPost.type,
-      location: newPost.location,
-      regionTab: newPost.regionTab,
-      pay: String(payNumber),
-      payDate: newPost.payDate,
-      taxDeduction: newPost.taxDeduction === true || newPost.taxDeduction === "true",
+    try {
+      const result = await createJob({
+        title: newPost.title,
+        description: newPost.description,
+        category: finalCategory,
+        subCategory: finalCategory === "기타" ? newPost.subCategory : "",
+        type: newPost.type,
+        location: newPost.location,
+        regionTab: newPost.regionTab,
+        pay: String(payNumber),
+        payDate: newPost.payDate,
+        taxDeduction: newPost.taxDeduction === true || newPost.taxDeduction === "true",
 
-      // 센터 연동 필드
-      centerId: (selectedCenterId && selectedCenterId !== 'none' && selectedCenterId !== 'new') ? Number(selectedCenterId) : null,
-      centerTempName: newPost.studio || "미등록 센터",
-      centerTempBusinessName: newPost.agencyName,
-      centerTempAddress: newPost.address,
-      centerTempAddressDetail: newPost.addressDetail,
-      centerTempPhone: newPost.centerPhone,
-      centerTempEquipment: Array.isArray(newPost.equipment) ? newPost.equipment.join(', ') : newPost.equipment,
+        // 센터 연동 필드
+        centerId: (selectedCenterId && selectedCenterId !== 'none' && selectedCenterId !== 'new') ? Number(selectedCenterId) : null,
+        centerTempName: newPost.studio || "미등록 센터",
+        centerTempBusinessName: newPost.agencyName,
+        centerTempAddress: newPost.address,
+        centerTempAddressDetail: newPost.addressDetail,
+        centerTempPhone: newPost.centerPhone,
+        centerTempEquipment: Array.isArray(newPost.equipment) ? newPost.equipment.join(', ') : newPost.equipment,
 
-      // 기존 필드 유지 (하위 호환성)
-      studio: newPost.studio || "미등록 센터",
-      companyName: newPost.agencyName || newPost.studio || "미등록 센터",
-      address: newPost.address,
-      addressDetail: newPost.addressDetail,
-      phone: newPost.centerPhone,
-      equipment: newPost.equipment || [],
+        // 기존 필드 유지 (하위 호환성)
+        studio: newPost.studio || "미등록 센터",
+        companyName: newPost.agencyName || newPost.studio || "미등록 센터",
+        address: newPost.address,
+        addressDetail: newPost.addressDetail,
+        phone: newPost.centerPhone,
+        equipment: newPost.equipment || [],
 
-      workTime: TIME_OPTIONS.find(o => o.id === newPost.workTime)?.label || "오전",
-      workTimeNote: newPost.workTimeNote,
-      days: newPost.type === 'regular' ? [newPost.workDate] : (newPost.isToday ? [newPost.workDate] : [newPost.workDate, newPost.workEndDate].filter(Boolean)),
-      daysOfWeek: newPost.daysSelected,
-      time: `${TIME_OPTIONS.find(o => o.id === newPost.workTime)?.label || "오전"}${newPost.workTimeNote ? ` (${newPost.workTimeNote})` : ""}`,
-    });
+        workTime: TIME_OPTIONS.find(o => o.id === newPost.workTime)?.label || "오전",
+        workTimeNote: newPost.workTimeNote,
+        days: newPost.type === 'regular' ? [newPost.workDate] : (newPost.isToday ? [newPost.workDate] : [newPost.workDate, newPost.workEndDate].filter(Boolean)),
+        daysOfWeek: newPost.daysSelected,
+        time: `${TIME_OPTIONS.find(o => o.id === newPost.workTime)?.label || "오전"}${newPost.workTimeNote ? ` (${newPost.workTimeNote})` : ""}`,
+      });
 
-    if (result.ok) {
-      localStorage.removeItem(LS_KEY);
-      showToast("공고가 등록되었습니다!", "success");
-      navigate("/");
-    } else {
-      if (result.error?.response?.status === 401) {
-        showToast("세션이 만료되었습니다. 다시 로그인해주세요.", "error");
-        logout();
-        navigate('/login');
-        return;
+      if (result.ok) {
+        localStorage.removeItem(LS_KEY);
+        showToast("공고가 등록되었습니다!", "success");
+        navigate("/");
+      } else {
+        if (result.error?.response?.status === 401) {
+          showToast("세션이 만료되었습니다. 다시 로그인해주세요.", "error");
+          logout();
+          navigate('/login');
+          return;
+        }
+        showToast("공고 등록에 실패했습니다: " + (result.error?.response?.data?.message || result.error?.message || "알 수 없는 오류"), "error");
       }
-      showToast("공고 등록에 실패했습니다: " + (result.error?.response?.data?.message || result.error?.message || "알 수 없는 오류"), "error");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   // ✅ 유효성 조건
   const isSubmitDisabled =
+    isSubmitting ||
     !newPost.category ||
     !newPost.title.trim() ||
     ((selectedCenterId !== "none" && !!selectedCenterId) && !newPost.studio.trim()) ||
@@ -1015,7 +1025,7 @@ export default function Write() {
             onClick={handleSubmit}
             disabled={isSubmitDisabled}
           >
-            공고 게시하기
+            {isSubmitting ? "등록 중..." : "공고 게시하기"}
           </button>
         </div>
 
