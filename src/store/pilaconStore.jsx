@@ -95,7 +95,10 @@ axios.interceptors.response.use(
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
         if (window.location.pathname !== '/login') {
-          window.location.href = '/login';
+          // 정지/영구정지 등으로 refresh가 거부된 경우, 사유를 로그인 화면에 표시
+          const message = err?.response?.data?.message;
+          const query = message ? `?authError=${encodeURIComponent(message)}` : '';
+          window.location.href = `/login${query}`;
         }
         return Promise.reject(err);
       }
